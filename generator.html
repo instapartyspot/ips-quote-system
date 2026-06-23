@@ -270,7 +270,7 @@ body{padding-top:42px;}
 <body>
 <div class="gsync-bar" id="gsync-bar">
   <div class="gsync-status"><span class="gsync-dot" id="gsync-dot"></span><span id="gsync-text">Not connected to IPS Quote System</span></div>
-  <button class="gsync-btn" id="gsync-btn" onclick="handleSignIn()">Sign in with Google</button>
+  <button class="gsync-btn" id="gsync-btn" onclick="handleGsyncBtnClick()">Sign in with Google</button>
 </div>
 
 <div class="send-modal-overlay" id="send-modal-overlay">
@@ -2324,9 +2324,29 @@ async function saveQuote(returnState){
 const IPS_GOOGLE_CLIENT_ID = '44184620232-lui0j92tn9qc5f2alsqtfe9tt7mds5to.apps.googleusercontent.com';
 const IPS_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtenWfNBXXK8o_7tIwARoFGA7mBOAyPS-1zJwqISeklP-Vj1pLTv5QWHiFOLo--ksodQ/exec';
 const IPS_ALLOWED_EMAIL = 'instapartyspot@gmail.com';
+const IPS_TOKEN_STORAGE_KEY = 'ips_quote_system_session';
 
 let ipsAccessToken=null;
 let ipsSignedInEmail=null;
+
+// ── Persist session across page loads / between Generator & Tracker ────
+// Stored in localStorage (shared per-browser, per-domain) so signing in on
+// one tool keeps you signed in on the other, and surviving back/forward nav.
+function ipsSaveSession(token,email,expiresAtMs){
+  try{
+    localStorage.setItem(IPS_TOKEN_STORAGE_KEY,JSON.stringify({token,email,expiresAtMs}));
+  }catch(e){console.warn('Could not save session:',e);}
+}
+function ipsLoadSession(){
+  try{
+    let raw=localStorage.getItem(IPS_TOKEN_STORAGE_KEY);
+    if(!raw)return null;
+    return JSON.parse(raw);
+  }catch(e){return null;}
+}
+function ipsClearSession(){
+  try{localStorage.removeItem(IPS_TOKEN_STORAGE_KEY);}catch(e){}
+}
 
 function initIpsSignIn(){
   if(typeof google==='undefined'||!google.accounts){setTimeout(initIpsSignIn,400);return;}
@@ -2337,9 +2357,23 @@ function initIpsSignIn(){
     callback:(resp)=>{
       if(resp.error){alert('Sign-in failed: '+resp.error);return;}
       ipsAccessToken=resp.access_token;
-      fetchSignedInEmail();
+      let expiresInSec=resp.expires_in?parseInt(resp.expires_in,10):3600;
+      let expiresAtMs=Date.now()+(expiresInSec*1000);
+      fetchSignedInEmail(expiresAtMs);
     }
   });
+  // Restore a previous session if we have one that hasn't expired yet
+  let saved=ipsLoadSession();
+  if(saved&&saved.token&&saved.expiresAtMs>Date.now()){
+    ipsAccessToken=saved.token;
+    ipsSignedInEmail=saved.email;
+    ipsShowConnected(saved.email);
+    refreshIpsDataIfTracker();
+  }else if(saved){
+    // Had a session but it expired — clear it and silently try to get a fresh
+    // token without bothering the person with an error if it doesn't work.
+    ipsClearSession();
+  }
 }
 window.addEventListener('DOMContentLoaded',initIpsSignIn);
 
@@ -2348,20 +2382,50 @@ function handleSignIn(){
   window.ipsTokenClient.requestAccessToken();
 }
 
-function fetchSignedInEmail(){
+function handleGsyncBtnClick(){
+  if(ipsSignedInEmail){
+    if(confirm('Signed in as '+ipsSignedInEmail+'. Sign out?')){
+      ipsAccessToken=null;ipsSignedInEmail=null;
+      ipsClearSession();
+      document.getElementById('gsync-dot').classList.remove('connected');
+      document.getElementById('gsync-text').textContent='Not connected to IPS Quote System';
+      document.getElementById('gsync-btn').textContent='Sign in with Google';
+    }
+  } else {
+    handleSignIn();
+  }
+}
+
+function ipsShowConnected(email){
+  let dot=document.getElementById('gsync-dot');
+  let text=document.getElementById('gsync-text');
+  let btn=document.getElementById('gsync-btn');
+  if(dot)dot.classList.add('connected');
+  if(text)text.textContent='Connected as '+email;
+  if(btn)btn.textContent='✓ Signed In';
+}
+
+// If this page is the Tracker, re-load quotes once a restored/fresh session
+// is confirmed (Tracker defines refreshQuotes(); Generator doesn't, so this
+// is a no-op there).
+function refreshIpsDataIfTracker(){
+  if(typeof refreshQuotes==='function')refreshQuotes();
+}
+
+function fetchSignedInEmail(expiresAtMs){
   fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+ipsAccessToken}})
     .then(r=>r.json())
     .then(info=>{
       if(info.email!==IPS_ALLOWED_EMAIL){
         alert('Please sign in with the instapartyspot@gmail.com account — signed in as '+info.email+' instead.');
         ipsAccessToken=null;
+        ipsClearSession();
         return;
       }
       ipsSignedInEmail=info.email;
-      document.getElementById('gsync-dot').classList.add('connected');
-      document.getElementById('gsync-text').textContent='Connected as '+info.email;
-      document.getElementById('gsync-btn').textContent='✓ Signed In';
-      localStorage.removeItem('___unused___'); // no-op, browser storage intentionally not used for tokens
+      ipsShowConnected(info.email);
+      ipsSaveSession(ipsAccessToken,info.email,expiresAtMs||(Date.now()+3600*1000));
+      refreshIpsDataIfTracker();
     })
     .catch(()=>alert('Could not verify sign-in — please try again.'));
 }
