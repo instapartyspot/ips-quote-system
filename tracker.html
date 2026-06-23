@@ -752,16 +752,16 @@ function buildFollowUp1(q){
   let venue='Insta Party Spot '+(q.Venue||'');
   let evDate=fmtShortDate(q.EventDate);
   return {
-    subject:`Following Up — Your ${evDate} Event at ${q.Venue||'Our Venue'}`,
-    body:`Hi ${fname},\n\nI just wanted to follow up on the quote we sent over for your ${evDate} event at our ${q.Venue||''} location — wanted to make sure it made it to you okay and see if anything's coming to mind as you look it over.\n\nWe've had a few other inquiries for that weekend, so I wanted to check in while the date's still open. If you have any questions about the quote, the space, or anything else, just let me know — happy to help however we can.\n\nAnd if you've decided to go a different direction, no worries at all — we'd just appreciate knowing either way.\n\nThanks again, and hope to hear from you soon!\n\nInsta Party Spot / VMA Party Rentals\nwww.instapartyspot.com\n626.629.8466`
+    subject:`Insta Party Spot - Following Up — Your ${evDate} Event in ${q.Venue||'Our Venue'}`,
+    body:`Hi ${fname},\n\nI just wanted to follow up on the quote we sent over for your ${evDate} event at our ${q.Venue||''} location — see if anything's coming to mind as you look it over.\n\nWe've had a few other inquiries for that weekend, so I wanted to check in while the date's still open. If you have any questions about the quote, the space, or anything else, just let me know — happy to help however we can.\n\nAnd if you've decided to go a different direction, no worries at all — we would just appreciate knowing either way.\n\nThanks again, and hope to hear from you soon!\n\nInsta Party Spot\nwww.instapartyspot.com\n626.629.8466`
   };
 }
 function buildFollowUp2(q){
   let fname=q.FirstName||'there';
   let evDate=fmtShortDate(q.EventDate);
   return {
-    subject:`Your Quote for ${evDate} Expires Soon — Let's Make It Work`,
-    body:`Hi ${fname},\n\nYour quote for ${evDate} at ${q.Venue||'our venue'} is set to expire in the next couple of days, and I didn't want that date to slip away without checking in first.\n\nIf something in the quote isn't quite working for you — the price, the package, the date — tell me what it is. We've got some flexibility on our end, and more often than not we can find a way to make it work for what you need.\n\nIf it's helpful, I can also extend the quote a few more days while we figure it out together — just say the word.\n\nEither way, I'd love to get ${evDate} locked in for you. What can I do to make that happen?\n\nInsta Party Spot / VMA Party Rentals\nwww.instapartyspot.com\n626.629.8466`
+    subject:`Insta Party Spot - Your Quote Is Expiring Soon - Lets Make It Work`,
+    body:`Hi ${fname},\n\nYour quote for ${evDate} at ${q.Venue||'our venue'} is set to expire in the next couple of days, and I didn't want that date to slip away without checking in first.\n\nIf something in the quote isn't quite working for you — the price, the package, the date — tell me what it is. We've got some flexibility on our end, and more often than not we can find a way to make it work for what you need.\n\nIf it's helpful, I can also extend the quote a few more days — just let us know.\n\nWe would love to get ${evDate} locked in for you. What can we do to make that happen?\n\nInsta Party Spot\nwww.instapartyspot.com\n626.629.8466`
   };
 }
 
