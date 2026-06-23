@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPS Quote Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#08080f;--bg2:#0f0f1a;--card:#16162a;--card2:#1e1e32;--card3:#242438;
+  --border:#2a2a45;--border2:#383860;
+  --gold:#c8a84b;--gold2:#e8c96a;--gold3:#f5e4a0;--gold-dim:rgba(200,168,75,.12);
+  --purple:#6c5ce7;--purple2:#a29bfe;
+  --green:#00b894;--green2:#55efc4;
+  --red:#e17055;--blue:#0984e3;--blue2:#74b9ff;
+  --text:#eeeef5;--text2:#8888aa;--text3:#555577;
+  --radius:12px;--radius2:7px;--radius3:4px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding-top:42px;}
+.wrap{max-width:1400px;margin:0 auto;padding:24px 28px 80px;}
+h1,h2,h3{font-family:'Playfair Display',serif;}
+.btn{font-family:'DM Sans',sans-serif;border-radius:8px;cursor:pointer;border:none;font-weight:600;transition:.15s;}
+.btn:hover{opacity:.9;}
+
+/* ── TOP SYNC BAR (matches Generator) ─────────────────────────────────── */
+.gsync-bar{position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--card2);border-bottom:1px solid var(--border2);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.gsync-status{display:flex;align-items:center;gap:8px;color:var(--text2);}
+.gsync-dot{width:8px;height:8px;border-radius:50%;background:var(--red);}
+.gsync-dot.connected{background:var(--green);}
+.gsync-btn{background:var(--gold);color:#1a1a1a;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;}
+.gsync-btn:hover{background:var(--gold2);}
+
+/* ── HEADER ───────────────────────────────────────────────────────────── */
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+.page-header h1{font-size:26px;color:var(--gold2);}
+.page-header .sub{color:var(--text2);font-size:13px;margin-top:4px;}
+.header-actions{display:flex;gap:10px;}
+.btn-primary{background:var(--gold);color:#1a1a1a;padding:10px 18px;font-size:13px;}
+.btn-secondary{background:none;border:1px solid var(--border2);color:var(--text);padding:10px 18px;font-size:13px;}
+.btn-sync{background:var(--blue);color:#fff;padding:10px 18px;font-size:13px;}
+
+/* ── ACTION LIST ──────────────────────────────────────────────────────── */
+.action-list{background:linear-gradient(135deg,var(--card2),var(--card3));border:1px solid var(--border2);border-radius:var(--radius);padding:18px 22px;margin-bottom:22px;}
+.action-list h2{font-size:16px;color:var(--gold2);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.action-items{display:flex;flex-wrap:wrap;gap:10px;}
+.action-pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:12.5px;cursor:pointer;}
+.action-pill:hover{border-color:var(--gold);}
+.action-pill .count{background:var(--red);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;}
+.action-pill.expiring .count{background:#e17055;}
+.action-pill.cold .count{background:#636e72;}
+.action-pill.due .count{background:var(--gold);color:#1a1a1a;}
+.action-empty{color:var(--text2);font-size:13px;font-style:italic;}
+
+/* ── KPI STRIP ────────────────────────────────────────────────────────── */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;}
+.kpi-card .kpi-label{font-size:10.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.kpi-card .kpi-value{font-size:22px;font-weight:700;color:var(--gold2);font-family:'Playfair Display',serif;}
+.kpi-card .kpi-sub{font-size:10.5px;color:var(--text3);margin-top:3px;}
+.kpi-card.value-at-risk .kpi-value{color:var(--green2);}
+
+/* ── FILTERS / VIEW TOGGLES ──────────────────────────────────────────── */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-chip{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;}
+.filter-chip.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold2);}
+.search-box{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);min-width:220px;}
+.search-box::placeholder{color:var(--text3);}
+
+/* ── BREAKDOWN VIEW TOGGLE ────────────────────────────────────────────── */
+.view-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+.view-tab{padding:10px 18px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;}
+.view-tab.active{color:var(--gold2);border-bottom-color:var(--gold);}
+
+/* ── QUOTE CARDS TABLE ────────────────────────────────────────────────── */
+.quotes-grid{display:flex;flex-direction:column;gap:10px;}
+.quote-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);padding:16px 18px;display:grid;grid-template-columns:auto 1.4fr 1fr 1fr 1fr auto;gap:16px;align-items:center;}
+.quote-card:hover{border-color:var(--border2);}
+.temp-tag{font-size:18px;width:28px;text-align:center;}
+.qc-name{font-weight:700;font-size:14.5px;color:var(--text);}
+.qc-name .repeat-flag{font-size:10px;color:var(--gold2);font-weight:600;margin-left:6px;}
+.qc-meta{font-size:11.5px;color:var(--text2);margin-top:2px;}
+.qc-field-label{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.qc-field-value{font-size:13px;color:var(--text);margin-top:2px;}
+.qc-total{font-size:16px;font-weight:700;color:var(--gold2);}
+.qc-status-select{background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;width:100%;}
+.qc-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.qc-btn{font-size:10.5px;padding:6px 10px;border-radius:6px;background:var(--card2);border:1px solid var(--border);color:var(--text2);cursor:pointer;}
+.qc-btn:hover{border-color:var(--gold);color:var(--gold2);}
+.qc-btn.fu1{border-color:var(--blue2);color:var(--blue2);}
+.qc-btn.fu2{border-color:var(--gold);color:var(--gold2);}
+.qc-btn.custom{border-color:var(--purple2);color:var(--purple2);}
+.qc-expand-row{grid-column:1/-1;border-top:1px solid var(--border);margin-top:8px;padding-top:10px;display:none;}
+.qc-expand-row.open{display:block;}
+.qc-notes-area{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;min-height:50px;}
+.qc-history{font-size:11px;color:var(--text2);margin-top:6px;}
+.qc-expand-toggle{grid-column:1/-1;text-align:center;font-size:10.5px;color:var(--text3);cursor:pointer;padding-top:6px;}
+
+/* Temperature colors */
+.temp-hot{color:#ff6b4a;}
+.temp-warm{color:#f5c842;}
+.temp-cold{color:#74b9ff;}
+
+/* Status badge colors used inline in select via data attribute styling */
+.qc-status-select[data-status="Lost"]{border-color:var(--red);color:#ff8a73;}
+.qc-status-select[data-status="Booked"]{border-color:var(--green);color:var(--green2);}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
+.empty-state .big-icon{font-size:40px;margin-bottom:12px;}
+
+/* ── MODALS (manual add, send preview, lost reason) ──────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.visible{display:flex;}
+.modal-box{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);max-width:600px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;}
+.modal-box h2{font-size:17px;color:var(--gold2);margin-bottom:16px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.form-grid.full{grid-template-columns:1fr;}
+.form-field label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;}
+.form-field input,.form-field select,.form-field textarea{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:9px 10px;font-size:13px;font-family:'DM Sans',sans-serif;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+.btn-cancel{background:none;border:1px solid var(--border2);color:var(--text2);padding:9px 18px;}
+.btn-confirm{background:var(--green);color:#fff;padding:9px 18px;}
+.btn-confirm:hover{background:var(--green2);}
+.sm-meta{font-size:12px;color:var(--text2);margin-bottom:14px;}
+.sm-value{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius3);padding:10px 12px;font-size:13px;white-space:pre-wrap;margin-bottom:12px;}
+.sm-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+
+.loading-msg{text-align:center;padding:40px;color:var(--text2);}
+</style>
+</head>
+<body>
+
+<div class="gsync-bar" id="gsync-bar">
+  <div class="gsync-status"><span class="gsync-dot" id="gsync-dot"></span><span id="gsync-text">Not connected to IPS Quote System</span></div>
+  <button class="gsync-btn" id="gsync-btn" onclick="handleSignIn()">Sign in with Google</button>
+</div>
+
+<div class="wrap">
+  <div class="page-header">
+    <div>
+      <h1>📋 IPS Quote Tracker</h1>
+      <div class="sub">Every hot quote and sales order, in one place — the goal is closing every one of these.</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="refreshQuotes()">🔄 Refresh</button>
+      <button class="btn btn-primary" onclick="openManualAddModal()">+ Add Quote Manually</button>
+    </div>
+  </div>
+
+  <div class="action-list" id="action-list">
+    <h2>⚡ Today's Action List</h2>
+    <div class="action-items" id="action-items"><div class="action-empty">Loading...</div></div>
+  </div>
+
+  <div class="kpi-strip" id="kpi-strip"></div>
+
+  <div class="view-tabs">
+    <div class="view-tab active" data-view="all" onclick="setView('all')">All Quotes</div>
+    <div class="view-tab" data-view="venue" onclick="setView('venue')">By Venue</div>
+    <div class="view-tab" data-view="staff" onclick="setView('staff')">By Staff</div>
+  </div>
+
+  <div class="filter-bar" id="filter-bar">
+    <div class="filter-chip active" data-stage="__all__" onclick="setStageFilter('__all__')">All</div>
+    <div class="filter-chip" data-stage="Quote Sent" onclick="setStageFilter('Quote Sent')">Quote Sent</div>
+    <div class="filter-chip" data-stage="Follow-Up 1 Sent" onclick="setStageFilter('Follow-Up 1 Sent')">Follow-Up 1</div>
+    <div class="filter-chip" data-stage="Follow-Up 2 Sent" onclick="setStageFilter('Follow-Up 2 Sent')">Follow-Up 2</div>
+    <div class="filter-chip" data-stage="Negotiating" onclick="setStageFilter('Negotiating')">Negotiating</div>
+    <div class="filter-chip" data-stage="Booked" onclick="setStageFilter('Booked')">Booked</div>
+    <div class="filter-chip" data-stage="Lost" onclick="setStageFilter('Lost')">Lost</div>
+    <input class="search-box" id="search-box" placeholder="Search name, email, event date..." oninput="renderQuotes()">
+  </div>
+
+  <div id="quotes-container" class="quotes-grid">
+    <div class="loading-msg">Sign in with Google (top bar) to load your quotes.</div>
+  </div>
+</div>
+
+<!-- MANUAL ADD MODAL -->
+<div class="modal-overlay" id="manual-add-overlay">
+  <div class="modal-box">
+    <h2>+ Add Quote Manually</h2>
+    <div class="form-grid">
+      <div class="form-field"><label>First Name</label><input id="ma-fname"></div>
+      <div class="form-field"><label>Last Name</label><input id="ma-lname"></div>
+      <div class="form-field"><label>Email</label><input id="ma-email" type="email"></div>
+      <div class="form-field"><label>Phone</label><input id="ma-phone"></div>
+      <div class="form-field"><label>Event Date</label><input id="ma-evdate" type="date"></div>
+      <div class="form-field"><label>Session Start</label><input id="ma-sessstart" placeholder="e.g. 2:00 PM"></div>
+      <div class="form-field"><label>Session End</label><input id="ma-sessend" placeholder="e.g. 7:00 PM"></div>
+
+      <div class="form-field"><label>Event Type</label><input id="ma-evtype" placeholder="e.g. Quinceañera"></div>
+      <div class="form-field"><label>Venue</label><select id="ma-venue"><option value="San Dimas">San Dimas</option><option value="Azusa">Azusa</option></select></div>
+      <div class="form-field"><label>Total Quoted ($)</label><input id="ma-total" type="number" step="0.01"></div>
+      <div class="form-field"><label>Mode</label><select id="ma-mode"><option value="QUOTE">Quote</option><option value="SALES-ORDER">Sales Order</option></select></div>
+    </div>
+    <div class="form-grid full">
+      <div class="form-field"><label>Notes</label><textarea id="ma-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeManualAddModal()">Cancel</button>
+      <button class="btn btn-confirm" onclick="submitManualAdd()">Add to Tracker</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEND PREVIEW MODAL -->
+<div class="modal-overlay" id="send-modal-overlay">
+  <div class="modal-box">
+    <h2 id="sm-title">Review Before Sending</h2>
+    <div class="sm-meta" id="sm-meta">To: —</div>
+    <div class="sm-label">Subject</div>
+    <div class="sm-value" id="sm-subject"></div>
+    <div class="sm-label">Body</div>
+    <div class="sm-value" id="sm-body" contenteditable="true"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeSendModal()">Cancel</button>
+      <button class="btn btn-confirm" onclick="confirmSend()">✅ Confirm &amp; Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOST REASON MODAL -->
+<div class="modal-overlay" id="lost-reason-overlay">
+  <div class="modal-box" style="max-width:420px;">
+    <h2>Mark as Lost — Why?</h2>
+    <div class="form-field" style="margin-bottom:14px;">
+      <select id="lost-reason-select">
+        <option value="Price">Price</option>
+        <option value="Date conflict">Date conflict</option>
+        <option value="Picked competitor">Picked a competitor</option>
+        <option value="Went quiet">Went quiet / unresponsive</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-field"><label>Additional notes (optional)</label><textarea id="lost-reason-notes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeLostReasonModal()">Cancel</button>
+      <button class="btn btn-confirm" onclick="confirmLostReason()">Mark Lost</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM EMAIL MODAL -->
+<div class="modal-overlay" id="custom-email-overlay">
+  <div class="modal-box">
+    <h2>Send Custom Email</h2>
+    <div class="sm-meta" id="ce-meta">To: —</div>
+    <div class="form-field" style="margin-bottom:12px;"><label>Subject</label><input id="ce-subject"></div>
+    <div class="form-field"><label>Body</label><textarea id="ce-body" rows="10"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeCustomEmailModal()">Cancel</button>
+      <button class="btn btn-confirm" onclick="submitCustomEmail()">✅ Confirm &amp; Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// IPS QUOTE TRACKER — CONFIG, SIGN-IN, DATA LOADING
+// ════════════════════════════════════════════════════════════════════════
+const IPS_GOOGLE_CLIENT_ID = '44184620232-lui0j92tn9qc5f2alsqtfe9tt7mds5to.apps.googleusercontent.com';
+const IPS_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtenWfNBXXK8o_7tIwARoFGA7mBOAyPS-1zJwqISeklP-Vj1pLTv5QWHiFOLo--ksodQ/exec';
+const IPS_ALLOWED_EMAIL = 'instapartyspot@gmail.com';
+
+let ipsAccessToken=null;
+let ipsSignedInEmail=null;
+let allQuotes=[];
+let currentStageFilter='__all__';
+let currentView='all';
+
+function initIpsSignIn(){
+  if(typeof google==='undefined'||!google.accounts){setTimeout(initIpsSignIn,400);return;}
+  window.ipsTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:IPS_GOOGLE_CLIENT_ID,
+    scope:'https://www.googleapis.com/auth/userinfo.email',
+    callback:(resp)=>{
+      if(resp.error){alert('Sign-in failed: '+resp.error);return;}
+      ipsAccessToken=resp.access_token;
+      fetchSignedInEmail();
+    }
+  });
+}
+window.addEventListener('DOMContentLoaded',initIpsSignIn);
+
+function handleSignIn(){
+  if(!window.ipsTokenClient){alert('Still loading Google sign-in — try again in a second.');return;}
+  window.ipsTokenClient.requestAccessToken();
+}
+
+function fetchSignedInEmail(){
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+ipsAccessToken}})
+    .then(r=>r.json())
+    .then(info=>{
+      if(info.email!==IPS_ALLOWED_EMAIL){
+        alert('Please sign in with the instapartyspot@gmail.com account — signed in as '+info.email+' instead.');
+        ipsAccessToken=null;
+        return;
+      }
+      ipsSignedInEmail=info.email;
+      document.getElementById('gsync-dot').classList.add('connected');
+      document.getElementById('gsync-text').textContent='Connected as '+info.email;
+      document.getElementById('gsync-btn').textContent='✓ Signed In';
+      refreshQuotes();
+    })
+    .catch(()=>alert('Could not verify sign-in — please try again.'));
+}
+
+async function callIpsBackend(action,payload){
+  if(IPS_APPS_SCRIPT_URL.indexOf('PASTE_YOUR')===0){
+    console.warn('Apps Script URL not configured yet.');
+    return {ok:false,error:'Backend not configured yet.'};
+  }
+  if(!ipsSignedInEmail){return {ok:false,error:'Not signed in.'};}
+  try{
+    let res=await fetch(IPS_APPS_SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action,callerEmail:ipsSignedInEmail,payload})
+    });
+    return await res.json();
+  }catch(err){
+    console.error('Backend call failed:',err);
+    return {ok:false,error:String(err)};
+  }
+}
+
+async function refreshQuotes(){
+  if(!ipsSignedInEmail){
+    document.getElementById('quotes-container').innerHTML='<div class="loading-msg">Sign in with Google (top bar) to load your quotes.</div>';
+    return;
+  }
+  document.getElementById('quotes-container').innerHTML='<div class="loading-msg">Loading quotes...</div>';
+  let result=await callIpsBackend('listQuotes',{});
+  if(!result.ok){
+    document.getElementById('quotes-container').innerHTML='<div class="loading-msg">⚠️ Could not load quotes: '+(result.error||'unknown error')+'</div>';
+    return;
+  }
+  allQuotes=result.quotes||[];
+  renderActionList();
+  renderKPIs();
+  renderQuotes();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// HELPERS — date math, temperature tags, repeat-customer detection
+// ════════════════════════════════════════════════════════════════════════
+function daysSince(isoStr){
+  if(!isoStr)return null;
+  let d=new Date(isoStr);
+  if(isNaN(d))return null;
+  return Math.floor((Date.now()-d.getTime())/86400000);
+}
+function daysUntil(dateStr){
+  if(!dateStr)return null;
+  let d=new Date(dateStr);
+  if(isNaN(d))return null;
+  return Math.ceil((d.getTime()-Date.now())/86400000);
+}
+function fmtShortDate(isoOrDateStr){
+  if(!isoOrDateStr)return '—';
+  let d=new Date(isoOrDateStr);
+  if(isNaN(d))return isoOrDateStr;
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+// Open = anything not yet Booked or Lost
+function isOpenQuote(q){return q.Status!=='Booked'&&q.Status!=='Lost';}
+
+function getTempTag(q){
+  if(!isOpenQuote(q))return '';
+  let contactDays=daysSince(q.LastContactAt||q.CreatedAt);
+  let eventDays=daysUntil(q.EventDate);
+  // Cold: gone quiet 10+ days
+  if(contactDays!==null&&contactDays>=10)return {icon:'❄️',cls:'temp-cold',label:'Cold — '+contactDays+'d since contact'};
+  // Hot: event soon + recent contact
+  if(eventDays!==null&&eventDays<=21&&contactDays!==null&&contactDays<=4)return {icon:'🔥',cls:'temp-hot',label:'Hot — event in '+eventDays+'d'};
+  return {icon:'🟡',cls:'temp-warm',label:'Warm'};
+}
+
+function isRepeatCustomer(q){
+  let norm=s=>(s||'').toString().trim().toLowerCase();
+  return allQuotes.some(other=>other.ID!==q.ID&&other.Status==='Booked'&&norm(other.FirstName)===norm(q.FirstName)&&norm(other.LastName)===norm(q.LastName));
+}
+
+function quoteIsExpiringSoon(q){
+  // 7-day quote expiration window, matches the Generator's expiry logic
+  if(!isOpenQuote(q)||q.Mode==='SALES-ORDER')return false;
+  let created=daysSince(q.CreatedAt);
+  return created!==null&&created>=5&&created<7;
+}
+function quoteIsExpired(q){
+  if(!isOpenQuote(q)||q.Mode==='SALES-ORDER')return false;
+  let created=daysSince(q.CreatedAt);
+  return created!==null&&created>=7;
+}
+function followUpDueToday(q){
+  if(!isOpenQuote(q))return false;
+  let contactDays=daysSince(q.LastContactAt||q.CreatedAt);
+  if(q.Status==='Quote Sent'&&contactDays>=2)return true;
+  if(q.Status==='Follow-Up 1 Sent'&&contactDays>=5)return true;
+  return false;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// RENDER — Action List
+// ════════════════════════════════════════════════════════════════════════
+function renderActionList(){
+  let dueToday=allQuotes.filter(followUpDueToday);
+  let expiring=allQuotes.filter(quoteIsExpiringSoon);
+  let cold=allQuotes.filter(q=>isOpenQuote(q)&&(daysSince(q.LastContactAt||q.CreatedAt)||0)>=10);
+  let container=document.getElementById('action-items');
+
+  if(dueToday.length===0&&expiring.length===0&&cold.length===0){
+    container.innerHTML='<div class="action-empty">🎉 Nothing urgent right now — every open quote is on track.</div>';
+    return;
+  }
+  let html='';
+  if(dueToday.length>0)html+=`<div class="action-pill due" onclick="quickFilterAction('dueToday')">📞 Follow-ups due today <span class="count">${dueToday.length}</span></div>`;
+  if(expiring.length>0)html+=`<div class="action-pill expiring" onclick="quickFilterAction('expiring')">⏰ Expiring in next 2 days <span class="count">${expiring.length}</span></div>`;
+  if(cold.length>0)html+=`<div class="action-pill cold" onclick="quickFilterAction('cold')">❄️ Gone cold (10+ days) <span class="count">${cold.length}</span></div>`;
+  container.innerHTML=html;
+}
+
+let activeQuickFilter=null;
+function quickFilterAction(type){
+  activeQuickFilter=activeQuickFilter===type?null:type;
+  renderQuotes();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// RENDER — KPI Strip
+// ════════════════════════════════════════════════════════════════════════
+function renderKPIs(){
+  let stages=['Quote Sent','Follow-Up 1 Sent','Follow-Up 2 Sent','Negotiating'];
+  let stageCounts={};
+  stages.forEach(s=>stageCounts[s]=allQuotes.filter(q=>q.Status===s).length);
+
+  let openQuotes=allQuotes.filter(isOpenQuote);
+  let valueAtRisk=openQuotes.reduce((sum,q)=>sum+(parseFloat(q.Total)||0),0);
+
+  let booked=allQuotes.filter(q=>q.Status==='Booked');
+  let lost=allQuotes.filter(q=>q.Status==='Lost');
+  let winRate=(booked.length+lost.length)>0?Math.round((booked.length/(booked.length+lost.length))*100):0;
+
+  let closeDays=booked.map(q=>{
+    let created=new Date(q.CreatedAt), updated=new Date(q.LastUpdatedAt);
+    if(isNaN(created)||isNaN(updated))return null;
+    return Math.round((updated-created)/86400000);
+  }).filter(d=>d!==null&&d>=0);
+  let avgCloseDays=closeDays.length>0?Math.round(closeDays.reduce((a,b)=>a+b,0)/closeDays.length):null;
+
+  let cards=[
+    {label:'Quote Sent',value:stageCounts['Quote Sent']},
+    {label:'Follow-Up 1',value:stageCounts['Follow-Up 1 Sent']},
+    {label:'Follow-Up 2',value:stageCounts['Follow-Up 2 Sent']},
+    {label:'Negotiating',value:stageCounts['Negotiating']},
+    {label:'Booked',value:booked.length,sub:lost.length+' lost'},
+    {label:'Win Rate',value:winRate+'%',sub:(booked.length+lost.length)+' decided'},
+    {label:'Value at Risk',value:'$'+valueAtRisk.toLocaleString(undefined,{maximumFractionDigits:0}),sub:openQuotes.length+' open quotes',cls:'value-at-risk'},
+    {label:'Avg Days to Close',value:avgCloseDays!==null?avgCloseDays:'—',sub:avgCloseDays!==null?'days':'no data yet'},
+  ];
+  document.getElementById('kpi-strip').innerHTML=cards.map(c=>`
+    <div class="kpi-card ${c.cls||''}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      ${c.sub?`<div class="kpi-sub">${c.sub}</div>`:''}
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// RENDER — Quote Cards
+// ════════════════════════════════════════════════════════════════════════
+function setStageFilter(stage){
+  currentStageFilter=stage;
+  activeQuickFilter=null;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.stage===stage));
+  renderQuotes();
+}
+function setView(view){
+  currentView=view;
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===view));
+  renderQuotes();
+}
+
+function renderQuotes(){
+  let search=(document.getElementById('search-box')?.value||'').toLowerCase().trim();
+  let list=allQuotes.slice();
+
+  // Quick filters from Action List
+  if(activeQuickFilter==='dueToday')list=list.filter(followUpDueToday);
+  else if(activeQuickFilter==='expiring')list=list.filter(quoteIsExpiringSoon);
+  else if(activeQuickFilter==='cold')list=list.filter(q=>isOpenQuote(q)&&(daysSince(q.LastContactAt||q.CreatedAt)||0)>=10);
+
+  // Stage filter
+  if(currentStageFilter!=='__all__')list=list.filter(q=>q.Status===currentStageFilter);
+
+  // Search
+  if(search){
+    list=list.filter(q=>{
+      let hay=[q.FirstName,q.LastName,q.Email,q.EventDate,q.Venue,q.EventType].join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+
+  // Sort: open quotes by most urgent (cold/overdue first), booked/lost at bottom by recency
+  list.sort((a,b)=>{
+    let aOpen=isOpenQuote(a), bOpen=isOpenQuote(b);
+    if(aOpen!==bOpen)return aOpen?-1:1;
+    if(aOpen){
+      let aDays=daysSince(a.LastContactAt||a.CreatedAt)||0;
+      let bDays=daysSince(b.LastContactAt||b.CreatedAt)||0;
+      return bDays-aDays;
+    }
+    return new Date(b.LastUpdatedAt)-new Date(a.LastUpdatedAt);
+  });
+
+  let container=document.getElementById('quotes-container');
+  if(currentView==='venue'){renderBreakdownView(list,'Venue');return;}
+  if(currentView==='staff'){renderBreakdownView(list,'StaffInitials');return;}
+
+  if(list.length===0){
+    container.innerHTML='<div class="empty-state"><div class="big-icon">📭</div>No quotes match this view yet.</div>';
+    return;
+  }
+
+  container.innerHTML=list.map(q=>renderQuoteCard(q)).join('');
+}
+
+function renderQuoteCard(q){
+  let temp=getTempTag(q);
+  let repeat=isRepeatCustomer(q);
+  let contactDays=daysSince(q.LastContactAt||q.CreatedAt);
+  let eventDays=daysUntil(q.EventDate);
+  let expiringFlag=quoteIsExpiringSoon(q)?'<span style="color:#e17055;font-weight:700;">⚠️ Expires soon</span>':(quoteIsExpired(q)?'<span style="color:#e17055;font-weight:700;">⛔ Expired — needs a decision</span>':'');
+
+  return `
+  <div class="quote-card" data-id="${q.ID}">
+    <div class="temp-tag ${temp.cls||''}" title="${temp.label||''}">${temp.icon||''}</div>
+    <div>
+      <div class="qc-name">${q.FirstName||''} ${q.LastName||''}${repeat?'<span class="repeat-flag">★ Repeat Client</span>':''}</div>
+      <div class="qc-meta">${q.Email||'—'} · ${q.Phone||'—'}</div>
+      <div class="qc-meta">${expiringFlag}</div>
+    </div>
+    <div>
+      <div class="qc-field-label">Event</div>
+      <div class="qc-field-value">${fmtShortDate(q.EventDate)} · ${q.Venue||'—'}</div>
+      <div class="qc-meta">${q.EventType||''}${q.SessionStart?' · '+q.SessionStart+(q.SessionEnd?'–'+q.SessionEnd:''):''}</div>
+
+    </div>
+    <div>
+      <div class="qc-field-label">Total / Rev</div>
+      <div class="qc-total">$${(parseFloat(q.Total)||0).toLocaleString(undefined,{minimumFractionDigits:2})}</div>
+      <div class="qc-meta">${q.Mode==='SALES-ORDER'?'Sales Order':'Quote'} · Rev ${q.RevisionNum||1} · ${contactDays!==null?contactDays+'d since contact':''}</div>
+    </div>
+    <div>
+      <div class="qc-field-label">Stage</div>
+      <select class="qc-status-select" data-status="${q.Status}" onchange="handleStatusChange('${q.ID}', this.value)">
+        ${['Quote Sent','Follow-Up 1 Sent','Follow-Up 2 Sent','Negotiating','Booked','Lost'].map(s=>`<option value="${s}" ${s===q.Status?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="qc-actions">
+      <button class="qc-btn fu1" onclick="sendFollowUp('${q.ID}',1)">Send FU1</button>
+      <button class="qc-btn fu2" onclick="sendFollowUp('${q.ID}',2)">Send FU2</button>
+      <button class="qc-btn custom" onclick="openCustomEmailModal('${q.ID}')">Custom</button>
+      <button class="qc-btn" onclick="toggleExpand('${q.ID}')">Notes ▾</button>
+    </div>
+    <div class="qc-expand-row" id="expand-${q.ID}">
+      <div class="qc-field-label" style="margin-bottom:6px;">Notes</div>
+      <textarea class="qc-notes-area" id="notes-${q.ID}" onblur="saveNotes('${q.ID}', this.value)">${q.Notes||''}</textarea>
+      <div class="qc-history">Created ${fmtShortDate(q.CreatedAt)} · Last updated ${fmtShortDate(q.LastUpdatedAt)}${q.LostReason?' · Lost reason: '+q.LostReason:''}</div>
+    </div>
+  </div>`;
+}
+
+function toggleExpand(id){
+  document.getElementById('expand-'+id).classList.toggle('open');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// BREAKDOWN VIEW (by Venue / by Staff)
+// ════════════════════════════════════════════════════════════════════════
+function renderBreakdownView(list,groupKey){
+  let groups={};
+  list.forEach(q=>{
+    let key=q[groupKey]||'Unassigned';
+    if(!groups[key])groups[key]=[];
+    groups[key].push(q);
+  });
+  let container=document.getElementById('quotes-container');
+  let html='';
+  Object.keys(groups).sort().forEach(key=>{
+    let items=groups[key];
+    let booked=items.filter(q=>q.Status==='Booked').length;
+    let lost=items.filter(q=>q.Status==='Lost').length;
+    let open=items.filter(isOpenQuote).length;
+    let winRate=(booked+lost)>0?Math.round((booked/(booked+lost))*100):0;
+    html+=`<div style="margin-bottom:8px;">
+      <h3 style="color:var(--gold2);font-size:15px;margin-bottom:8px;">${key} — ${items.length} total · ${open} open · ${booked} booked · ${winRate}% win rate</h3>
+      <div class="quotes-grid">${items.map(renderQuoteCard).join('')}</div>
+    </div>`;
+  });
+  container.innerHTML=html||'<div class="empty-state">No data yet for this view.</div>';
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// STATUS CHANGE / NOTES / LOST REASON
+// ════════════════════════════════════════════════════════════════════════
+let pendingLostId=null;
+
+function handleStatusChange(id,newStatus){
+  if(newStatus==='Lost'){
+    pendingLostId=id;
+    document.getElementById('lost-reason-overlay').classList.add('visible');
+    return;
+  }
+  updateQuoteField(id,{Status:newStatus});
+}
+
+function closeLostReasonModal(){
+  document.getElementById('lost-reason-overlay').classList.remove('visible');
+  pendingLostId=null;
+  renderQuotes(); // reset the select back to its real value since we didn't commit yet
+}
+
+async function confirmLostReason(){
+  if(!pendingLostId)return;
+  let reason=document.getElementById('lost-reason-select').value;
+  let extraNotes=document.getElementById('lost-reason-notes').value;
+  let q=allQuotes.find(x=>x.ID===pendingLostId);
+  let updates={Status:'Lost',LostReason:reason};
+  if(extraNotes)updates.Notes=((q&&q.Notes)||'')+'\n[Lost note] '+extraNotes;
+  await updateQuoteField(pendingLostId,updates);
+  document.getElementById('lost-reason-overlay').classList.remove('visible');
+  document.getElementById('lost-reason-notes').value='';
+  pendingLostId=null;
+}
+
+async function saveNotes(id,value){
+  await updateQuoteField(id,{Notes:value});
+}
+
+async function updateQuoteField(id,fields){
+  let result=await callIpsBackend('updateQuote',{id,fields});
+  if(!result.ok){
+    alert('⚠️ Could not save change: '+(result.error||'unknown error'));
+    return;
+  }
+  // Update local cache so the UI reflects it immediately without a full reload
+  let q=allQuotes.find(x=>x.ID===id);
+  if(q)Object.assign(q,fields,{LastUpdatedAt:new Date().toISOString()});
+  renderActionList();
+  renderKPIs();
+  renderQuotes();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MANUAL ADD
+// ════════════════════════════════════════════════════════════════════════
+function openManualAddModal(){
+  document.getElementById('manual-add-overlay').classList.add('visible');
+}
+function closeManualAddModal(){
+  document.getElementById('manual-add-overlay').classList.remove('visible');
+  ['ma-fname','ma-lname','ma-email','ma-phone','ma-evdate','ma-sessstart','ma-sessend','ma-evtype','ma-total','ma-notes'].forEach(id=>document.getElementById(id).value='');
+}
+async function submitManualAdd(){
+  let fname=document.getElementById('ma-fname').value.trim();
+  let lname=document.getElementById('ma-lname').value.trim();
+  if(!fname||!lname){alert('First and last name are required.');return;}
+  let payload={
+    fname,lname,
+    email:document.getElementById('ma-email').value.trim(),
+    phone:document.getElementById('ma-phone').value.trim(),
+    evdate:document.getElementById('ma-evdate').value,
+    sessstart:document.getElementById('ma-sessstart').value.trim(),
+    sessend:document.getElementById('ma-sessend').value.trim(),
+    evtype:document.getElementById('ma-evtype').value.trim(),
+    venue:document.getElementById('ma-venue').value,
+    total:parseFloat(document.getElementById('ma-total').value)||0,
+    mode:document.getElementById('ma-mode').value,
+    staffInitials:'MANUAL',
+    leadsource:'Manual Entry'
+  };
+  let result=await callIpsBackend('syncQuote',payload);
+  if(!result.ok){alert('⚠️ Could not add quote: '+(result.error||'unknown error'));return;}
+  let notes=document.getElementById('ma-notes').value.trim();
+  if(notes&&result.rowId)await callIpsBackend('updateQuote',{id:result.rowId,fields:{Notes:notes}});
+  closeManualAddModal();
+  refreshQuotes();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// FOLLOW-UP EMAILS (FU1 soft check-in / FU2 direct + concession / Custom)
+// ════════════════════════════════════════════════════════════════════════
+function buildFollowUp1(q){
+  let fname=q.FirstName||'there';
+  let venue='Insta Party Spot '+(q.Venue||'');
+  let evDate=fmtShortDate(q.EventDate);
+  return {
+    subject:`Following Up — Your ${evDate} Event at ${q.Venue||'Our Venue'}`,
+    body:`Hi ${fname},\n\nI just wanted to follow up on the quote we sent over for your ${evDate} event at our ${q.Venue||''} location — wanted to make sure it made it to you okay and see if anything's coming to mind as you look it over.\n\nWe've had a few other inquiries for that weekend, so I wanted to check in while the date's still open. If you have any questions about the quote, the space, or anything else, just let me know — happy to help however we can.\n\nAnd if you've decided to go a different direction, no worries at all — we'd just appreciate knowing either way.\n\nThanks again, and hope to hear from you soon!\n\nInsta Party Spot / VMA Party Rentals\nwww.instapartyspot.com\n626.629.8466`
+  };
+}
+function buildFollowUp2(q){
+  let fname=q.FirstName||'there';
+  let evDate=fmtShortDate(q.EventDate);
+  return {
+    subject:`Your Quote for ${evDate} Expires Soon — Let's Make It Work`,
+    body:`Hi ${fname},\n\nYour quote for ${evDate} at ${q.Venue||'our venue'} is set to expire in the next couple of days, and I didn't want that date to slip away without checking in first.\n\nIf something in the quote isn't quite working for you — the price, the package, the date — tell me what it is. We've got some flexibility on our end, and more often than not we can find a way to make it work for what you need.\n\nIf it's helpful, I can also extend the quote a few more days while we figure it out together — just say the word.\n\nEither way, I'd love to get ${evDate} locked in for you. What can I do to make that happen?\n\nInsta Party Spot / VMA Party Rentals\nwww.instapartyspot.com\n626.629.8466`
+  };
+}
+
+function sendFollowUp(id,num){
+  let q=allQuotes.find(x=>x.ID===id);
+  if(!q){alert('Quote not found.');return;}
+  if(!q.Email){alert('No email on file for this client — add one first.');return;}
+  let tmpl=num===1?buildFollowUp1(q):buildFollowUp2(q);
+  openSendModal({
+    to:q.Email,
+    subject:tmpl.subject,
+    bodyText:tmpl.body,
+    quoteId:id,
+    markStatus:'Follow-Up '+num+' Sent',
+    title:'Review Follow-Up '+num+' Before Sending'
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SEND MODAL (shared: follow-ups + custom)
+// ════════════════════════════════════════════════════════════════════════
+let ipsPendingSend=null;
+
+function openSendModal({to,subject,bodyText,quoteId,markStatus,title}){
+  if(!ipsSignedInEmail){alert('Please sign in with Google first (top bar) so we can send this from instapartyspot@gmail.com.');return;}
+  ipsPendingSend={to,subject,bodyText,quoteId,markStatus};
+  document.getElementById('sm-title').textContent=title||'Review Before Sending';
+  document.getElementById('sm-meta').textContent='To: '+(to||'—');
+  document.getElementById('sm-subject').textContent=subject||'';
+  document.getElementById('sm-body').textContent=bodyText||'';
+  document.getElementById('send-modal-overlay').classList.add('visible');
+}
+function closeSendModal(){
+  document.getElementById('send-modal-overlay').classList.remove('visible');
+  ipsPendingSend=null;
+}
+async function confirmSend(){
+  if(!ipsPendingSend)return;
+  let p=ipsPendingSend;
+  let editedBody=document.getElementById('sm-body').textContent; // allow last-second edits
+  let htmlBody=editedBody.replace(/\n/g,'<br>');
+  let result=await callIpsBackend('sendEmail',{
+    to:p.to,subject:p.subject,htmlBody:htmlBody,
+    quoteId:p.quoteId,markStatus:p.markStatus
+  });
+  if(result.ok){
+    alert('✅ Email sent to '+p.to);
+    closeSendModal();
+    if(p.quoteId){
+      let q=allQuotes.find(x=>x.ID===p.quoteId);
+      if(q){q.Status=p.markStatus||q.Status;q.LastContactAt=new Date().toISOString();}
+    }
+    renderActionList();renderKPIs();renderQuotes();
+  }else{
+    alert('⚠️ Send failed: '+(result.error||'unknown error'));
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CUSTOM EMAIL
+// ════════════════════════════════════════════════════════════════════════
+let pendingCustomId=null;
+function openCustomEmailModal(id){
+  let q=allQuotes.find(x=>x.ID===id);
+  if(!q){alert('Quote not found.');return;}
+  if(!q.Email){alert('No email on file for this client — add one first.');return;}
+  pendingCustomId=id;
+  document.getElementById('ce-meta').textContent='To: '+q.Email;
+  document.getElementById('ce-subject').value=`Following Up — Insta Party Spot`;
+  document.getElementById('ce-body').value=`Hi ${q.FirstName||''},\n\n`;
+  document.getElementById('custom-email-overlay').classList.add('visible');
+}
+function closeCustomEmailModal(){
+  document.getElementById('custom-email-overlay').classList.remove('visible');
+  pendingCustomId=null;
+}
+async function submitCustomEmail(){
+  if(!pendingCustomId)return;
+  let q=allQuotes.find(x=>x.ID===pendingCustomId);
+  let subject=document.getElementById('ce-subject').value.trim();
+  let body=document.getElementById('ce-body').value;
+  if(!subject||!body.trim()){alert('Add a subject and message body first.');return;}
+  let result=await callIpsBackend('sendEmail',{
+    to:q.Email,subject,htmlBody:body.replace(/\n/g,'<br>'),quoteId:pendingCustomId
+  });
+  if(result.ok){
+    alert('✅ Custom email sent to '+q.Email);
+    closeCustomEmailModal();
+    q.LastContactAt=new Date().toISOString();
+    renderActionList();renderKPIs();renderQuotes();
+  }else{
+    alert('⚠️ Send failed: '+(result.error||'unknown error'));
+  }
+}
+</script>
+</body></html>
