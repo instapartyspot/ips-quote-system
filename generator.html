@@ -261,6 +261,8 @@ body{padding-top:42px;}
 .send-modal .sm-field{margin-bottom:12px;}
 .send-modal .sm-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
 .send-modal .sm-value{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius3);padding:10px 12px;font-size:13px;white-space:pre-wrap;}
+.send-modal .sm-value.sm-html-preview{background:#ffffff;color:#1a1a1a;white-space:normal;border:1px solid #ddd;line-height:1.5;}
+.send-modal .sm-value.sm-html-preview br{line-height:1.6;}
 .send-modal .sm-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
 .send-modal .sm-btn-cancel{background:none;border:1px solid var(--border2);color:var(--text2);border-radius:8px;padding:9px 18px;cursor:pointer;font-weight:600;}
 .send-modal .sm-btn-confirm{background:var(--green);border:none;color:#fff;border-radius:8px;padding:9px 18px;cursor:pointer;font-weight:700;}
@@ -2514,8 +2516,10 @@ function openSendModal({to,subject,bodyText,htmlBodyOverride,attachmentBase64,at
   let bodyEl=document.getElementById('sm-body');
   if(htmlBodyOverride){
     bodyEl.innerHTML=htmlBodyOverride; // real preview, including the styled quote table
+    bodyEl.classList.add('sm-html-preview');
   }else{
     bodyEl.textContent=bodyText||'';
+    bodyEl.classList.remove('sm-html-preview');
   }
   document.getElementById('send-modal-overlay').classList.add('visible');
 }
