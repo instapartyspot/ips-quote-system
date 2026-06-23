@@ -1857,6 +1857,36 @@ function buildTableHTML(lines,t){
   return tbl;
 }
 
+// Email-safe version of the quote table — all styling inlined per-tag, since
+// Gmail and most email clients strip <style> classes from pasted/injected HTML.
+function buildEmailSafeTableHTML(lines,t){
+  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let cellBase='padding:8px 10px;border:1px solid #e0e0e0;font-size:13px;font-family:Arial,Helvetica,sans-serif;';
+  let thStyle=cellBase+'background:#1a1a2e;color:#c8a84b;text-transform:uppercase;font-size:11px;letter-spacing:.05em;text-align:left;';
+  let rowStyleFor=cls=>{
+    if(cls==='inc')return cellBase+'color:#999;';
+    if(cls==='disc-r')return cellBase+'color:#2e7d32;font-weight:600;';
+    if(cls==='svc-r')return cellBase+'background:#faf9ff;';
+    if(cls==='upg-r')return cellBase+'background:#fffef8;';
+    return cellBase;
+  };
+  let tbl=`<table style="width:100%;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;margin:0;">
+    <thead><tr>
+      <th style="${thStyle}">Item</th><th style="${thStyle}">Qty</th><th style="${thStyle}">Unit Price</th><th style="${thStyle}">Extended Price</th>
+    </tr></thead><tbody>`;
+  lines.forEach(l=>{
+    let cs=rowStyleFor(l.cls);
+    tbl+=`<tr><td style="${cs}">${l.item}</td><td style="${cs}">${l.qty}</td><td style="${cs}">${l.unit}</td><td style="${cs}">${l.ext}</td></tr>`;
+  });
+  let totalStyle=cellBase+'background:#c8a84b;color:#fff;font-weight:700;font-size:14px;';
+  let depStyle=cellBase+'background:#f7f7f7;color:#666;font-size:12px;';
+  tbl+=`<tr><td colspan="2" style="${totalStyle}border:none;"></td><td style="${totalStyle}text-align:right;">Total Price ›</td><td style="${totalStyle}text-align:right;">$${finalTotal.toFixed(2)}</td></tr>`;
+  tbl+=`<tr><td colspan="3" style="${depStyle}text-align:right;">Deposit Due ›</td><td style="${depStyle}text-align:right;">$${t.dep}</td></tr>`;
+  tbl+=`<tr><td colspan="3" style="${depStyle}text-align:right;">Balance Due (1 week before event) ›</td><td style="${depStyle}text-align:right;">$${(finalTotal-t.dep).toFixed(2)}</td></tr>`;
+  tbl+='</tbody></table>';
+  return tbl;
+}
+
 function fmtDate(d){if(!d)return'—';let p=d.split('-');let dt=new Date(+p[0],+p[1]-1,+p[2]);return dt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}
 
 // ── GENERATE QUOTE ─────────────────────────────────────────────────────────────
@@ -2472,16 +2502,21 @@ async function syncQuoteToTracker(state, mode, byName){
 // ── SEND MODAL (shared by Generator's Send button) ─────────────────────
 let ipsPendingSend=null;
 
-function openSendModal({to,subject,bodyText,attachmentBase64,attachmentName,quoteId,markStatus,title}){
+function openSendModal({to,subject,bodyText,htmlBodyOverride,attachmentBase64,attachmentName,quoteId,markStatus,title}){
   if(!ipsSignedInEmail){
     alert('Please sign in with Google first (top bar) so we can send this from instapartyspot@gmail.com.');
     return;
   }
-  ipsPendingSend={to,subject,bodyText,attachmentBase64,attachmentName,quoteId,markStatus};
+  ipsPendingSend={to,subject,bodyText,htmlBodyOverride,attachmentBase64,attachmentName,quoteId,markStatus};
   document.getElementById('sm-title').textContent=title||'Review Before Sending';
   document.getElementById('sm-meta').textContent='To: '+(to||'—');
   document.getElementById('sm-subject').textContent=subject||'';
-  document.getElementById('sm-body').textContent=bodyText||'';
+  let bodyEl=document.getElementById('sm-body');
+  if(htmlBodyOverride){
+    bodyEl.innerHTML=htmlBodyOverride; // real preview, including the styled quote table
+  }else{
+    bodyEl.textContent=bodyText||'';
+  }
   document.getElementById('send-modal-overlay').classList.add('visible');
 }
 
@@ -2493,7 +2528,11 @@ function closeSendModal(){
 async function confirmSend(){
   if(!ipsPendingSend)return;
   let p=ipsPendingSend;
-  let htmlBody=p.bodyText.replace(/\n/g,'<br>');
+  // If the body was edited live in the preview (contenteditable), pull the
+  // current DOM content so edits aren't lost — as HTML if this is a table
+  // send, otherwise as plain text converted to <br> line breaks.
+  let bodyEl=document.getElementById('sm-body');
+  let htmlBody=p.htmlBodyOverride?bodyEl.innerHTML:(bodyEl.textContent||p.bodyText||'').replace(/\n/g,'<br>');
   let result=await callIpsBackend('sendEmail',{
     to:p.to,subject:p.subject,htmlBody:htmlBody,
     attachmentBase64:p.attachmentBase64,attachmentName:p.attachmentName,
@@ -2543,11 +2582,22 @@ async function sendQuoteEmail(){
     let subjectEl=document.getElementById('out-subject');
     let bodyEl=document.getElementById('out-email');
     if(!subjectEl||!bodyEl||!bodyEl.textContent){alert('Click "Generate Quote" first so the email is ready to send.');return;}
-    let bodyText=bodyEl.textContent.replace('[PASTE QUOTE TABLE HERE]','\n[Quote table included below — full pricing breakdown]\n');
+    let t=calc();
+    let lines=buildLines(t);
+    if(!lines||!lines.length){alert('Could not find the generated quote data — click "Generate Quote" again first.');return;}
+    let emailSafeTable=buildEmailSafeTableHTML(lines,t);
+    // Build the real HTML email: plain-text body converted to <br> lines,
+    // with the email-safe (inline-styled) quote table spliced in where the
+    // placeholder sits — Gmail strips page CSS classes, so this must be
+    // self-contained inline styling, not the same markup shown on the page.
+    let bodyHtml=bodyEl.textContent
+      .split('[PASTE QUOTE TABLE HERE]')
+      .map(part=>part.replace(/\n/g,'<br>'))
+      .join('<div style="margin:14px 0;">'+emailSafeTable+'</div>');
     openSendModal({
       to:email,
       subject:subjectEl.textContent,
-      bodyText:bodyText,
+      htmlBodyOverride:bodyHtml,
       title:'Review Quote Email Before Sending',
       markStatus:'Quote Sent'
     });
