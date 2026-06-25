@@ -419,7 +419,8 @@ body{padding-top:42px;}
     <label>End</label>
     <select class="time-sel" id="sess-end">
       <option>11:00 AM</option><option>12:00 PM</option><option>1:00 PM</option><option>2:00 PM</option>
-      <option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option><option>8:00 PM</option>
+      <option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option><option>6:00 PM</option>
+      <option>7:00 PM</option><option>8:00 PM</option>
       <option>9:00 PM</option><option selected="">10:00 PM</option><option>11:00 PM</option>
       <option>12:00 AM</option><option>1:00 AM</option>
     </select>
@@ -524,6 +525,10 @@ body{padding-top:42px;}
     <button class="add-row-btn" onclick="addLinenRow(&#39;Cocktail&#39;)">+ Cocktail Linen</button>
     <button class="add-row-btn" onclick="addLinenRow(&#39;Other&#39;)">+ Other</button>
   </div>
+  <div class="notice" style="margin-top:14px;">Runners &amp; Overlays — separate items, priced individually (not the flat $13.60 linen rate above).</div>
+  <table class="upg-table"><thead><tr><th></th><th>Item</th><th>Full Price</th><th>IPS Price (20% off)</th><th>Qty</th></tr></thead>
+  <tbody id="linen-addon-upg-body"></tbody>
+  </table>
 </div>
 
 <!-- CHAIR UPGRADES -->
@@ -1123,15 +1128,11 @@ const CHAIR_UPGRADES=[
   {id:'cu0',name:'Padded White Folding Chairs',full:3.25,unit:'ea',note:'San Dimas only'},
   {id:'cu1',name:'Gold Chiavari Chairs',full:5.50,unit:'ea',note:'San Dimas only'},
 ];
-// All linens $17 full price
+// Runner and Overlay are separately-priced add-ons, distinct from the flat
+// $17/$13.60 linen rate used for 6-ft/8-ft/Round/Cocktail/Other linen sizes above.
 const LINEN_UPGRADES=[
-  {id:'lu0',name:'8-ft Rectangular Linen',full:17,unit:'ea'},
-  {id:'lu1',name:'6-ft Rectangular Linen',full:17,unit:'ea'},
-  {id:'lu2',name:'60" Round Linen',full:17,unit:'ea'},
   {id:'lu3',name:'Table Runner',full:8,unit:'ea'},
-  {id:'lu4',name:'Napkins',full:1,unit:'ea'},
   {id:'lu5',name:'Overlay',full:10,unit:'ea'},
-  {id:'lu6',name:'Kids Table Linen',full:17,unit:'ea'},
 ];
 const TABLE_UPGRADES=[
   {id:'tu0',name:'Charger Plates',full:1,unit:'ea',hasSel:true,selOpts:['Gold','Silver'],selLabel:'Finish'},
@@ -1714,7 +1715,7 @@ function calc(){
   let linenData=calcLinens();
   upgIPS+=linenData.total;
   upgFull+=linenData.total/0.8;
-  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
+  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES,...LINEN_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
     let cb=document.getElementById(u.id+'_cb');if(!cb||!cb.checked)return;
     let qty=parseInt(document.getElementById(u.id+'_qty')?.value)||1;
     if(u.customPrice){
@@ -1816,7 +1817,7 @@ function buildLines(t){
   let discLine=0;
   // Linens via calcLinens() — already in t.upgFull/t.upgIPS, just add line items
   let linenData=calcLinens();
-  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
+  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES,...LINEN_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
     let cb=document.getElementById(u.id+'_cb');if(!cb||!cb.checked)return;
     let qty=parseInt(document.getElementById(u.id+'_qty')?.value)||1;
     let col=document.getElementById(u.id+'_col')?.value||'';
@@ -2315,7 +2316,7 @@ async function saveQuote(returnState){
     });
   });
   // Upgrades
-  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
+  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES,...LINEN_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
     let cb=document.getElementById(u.id+'_cb');
     let qty=document.getElementById(u.id+'_qty');
     let col=document.getElementById(u.id+'_col');
@@ -2850,6 +2851,7 @@ function toggleDouble(){
 renderInclusionToggles();
 renderUpgTable(CHAIR_UPGRADES,'chair-upg-body',false,false);
 renderLinenRows();
+renderUpgTable(LINEN_UPGRADES,'linen-addon-upg-body',false,false);
 renderUpgTable(TABLE_UPGRADES,'table-upg-body',false,true);
 renderUpgTable(DECOR_UPGRADES,'decor-upg-body',false,false);
 renderPDGrid();
