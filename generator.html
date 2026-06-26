@@ -1120,6 +1120,10 @@ Please let us know any questions you have. We look forward to making this a very
 // Shared email signature — appended to the end of every Quote and Sales Order
 // email body. Edit once here to change it everywhere.
 const IPS_EMAIL_SIGNATURE = `\n\nThanks,\n\nInsta Party Spot / VMA PARTY RENTALS\nwww.instapartyspot.com\n626.629.8466\nInstagram\nFacebook`;
+// HTML version with real clickable links — used ONLY by the Quote-mode email
+// (which sends as real HTML). Sales Order emails stay plain text and keep
+// using IPS_EMAIL_SIGNATURE above, untouched.
+const IPS_EMAIL_SIGNATURE_HTML = `<br><br>Thanks,<br><br>Insta Party Spot / VMA PARTY RENTALS<br><a href="https://www.instapartyspot.com" style="color:#0066cc;">www.instapartyspot.com</a><br>626.629.8466<br><a href="https://www.instagram.com/instapartyspot" style="color:#0066cc;">Instagram</a><br><a href="https://www.facebook.com/p/Insta-Party-Spot-61579109739280/" style="color:#0066cc;">Facebook</a>`;
 const RATES={
   sd:{sat:800,other:700,clean:60,hr:95,dep:200},
   az:{sat:1450,other:1350,clean:125,hr:190,dep:400}
@@ -2632,10 +2636,17 @@ async function sendQuoteEmail(){
     // with the email-safe (inline-styled) quote table spliced in where the
     // placeholder sits — Gmail strips page CSS classes, so this must be
     // self-contained inline styling, not the same markup shown on the page.
-    let bodyHtml=bodyEl.textContent
+    // The plain-text signature is stripped off here and replaced with the
+    // HTML version (real clickable Instagram/Facebook/website links) —
+    // Sales Order emails are untouched and keep the plain-text signature.
+    let bodyTextNoSig=bodyEl.textContent.endsWith(IPS_EMAIL_SIGNATURE)
+      ?bodyEl.textContent.slice(0,-IPS_EMAIL_SIGNATURE.length)
+      :bodyEl.textContent;
+    let bodyHtml=bodyTextNoSig
       .split('[PASTE QUOTE TABLE HERE]')
       .map(part=>part.replace(/\n/g,'<br>'))
-      .join('<div style="margin:14px 0;">'+emailSafeTable+'</div>');
+      .join('<div style="margin:14px 0;">'+emailSafeTable+'</div>')
+      +IPS_EMAIL_SIGNATURE_HTML;
     openSendModal({
       to:email,
       subject:subjectEl.textContent,
