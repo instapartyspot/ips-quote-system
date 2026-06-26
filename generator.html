@@ -2684,7 +2684,7 @@ function loadQuote(event){
       setVal('add-hours',s.addhours);setVal('deposit',s.deposit);setVal('timeline',s.timeline);
       if(s.depositCustomVal){let dc=document.getElementById('deposit-custom');if(dc){dc.value=s.depositCustomVal;if(s.deposit==='custom')dc.style.display='block';}}
       if(s.specialRateCb){let cb=document.getElementById('special-rate-cb');if(cb){cb.checked=true;toggleSpecialRate();let sv=document.getElementById('special-rate-val');if(sv&&s.specialRateVal)sv.value=s.specialRateVal;}}
-      if(s.pdWalls){Object.keys(s.pdWalls).forEach(wid=>{let d=s.pdWalls[wid];let card=document.getElementById('pdc_'+wid);if(card&&d.active){card.classList.add('active');card.style.borderColor='var(--gold)';card.style.background='var(--gold-bg)';}let col=document.getElementById('pdcol_'+wid);if(col&&d.col)col.value=d.col;let qty=document.getElementById('pdqty_'+wid);if(qty&&d.qty)qty.value=d.qty;});}
+      if(s.pdWalls){Object.keys(s.pdWalls).forEach(wid=>{let d=s.pdWalls[wid];let card=document.getElementById('pdc_'+wid);if(card&&d.active){card.classList.add('active');card.style.borderColor='var(--gold)';card.style.background='var(--gold-bg)';let cb=document.getElementById('pdcb_'+wid);if(cb)cb.checked=true;let sub=document.getElementById('pdi_'+wid);if(sub)sub.style.display='block';}let col=document.getElementById('pdcol_'+wid);if(col&&d.col)col.value=d.col;let qty=document.getElementById('pdqty_'+wid);if(qty&&d.qty)qty.value=d.qty;});}
       setVal('pay-method',s.payMethod);setVal('pay-amount',s.payAmount);
       setVal('pay-date',s.payDate);setVal('pay-notes',s.payNotes);
       // Location
