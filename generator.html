@@ -2339,7 +2339,8 @@ async function saveQuote(returnState){
     let sel=document.getElementById(u.id+'_sel');
     let price=document.getElementById(u.id+'_price');
     let loc=document.getElementById(u.id+'_loc');
-    if(cb)state.upgrades[u.id]={checked:cb.checked,qty:qty?.value||1,col:col?.value||'',sel:sel?.value||'',price:price?.value||'',loc:loc?.value||''};
+    let comp=document.getElementById(u.id+'_comp');
+    if(cb)state.upgrades[u.id]={checked:cb.checked,qty:qty?.value||1,col:col?.value||'',sel:sel?.value||'',price:price?.value||'',loc:loc?.value||'',comp:comp?.checked||false};
   });
   // Services
   SERVICES.forEach(s=>{
@@ -2748,6 +2749,7 @@ function loadQuote(event){
           cb.checked=d.checked||false;
           if(d.checked)toggleUpg(uid);
           let qty=document.getElementById(uid+'_qty');if(qty)qty.value=d.qty||1;
+          let comp=document.getElementById(uid+'_comp');if(comp)comp.checked=d.comp||false;
           let col=document.getElementById(uid+'_col');if(col)col.value=d.col||'';
           let sel=document.getElementById(uid+'_sel');if(sel)sel.value=d.sel||'';
           let price=document.getElementById(uid+'_price');if(price)price.value=d.price||'';
