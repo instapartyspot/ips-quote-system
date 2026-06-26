@@ -535,7 +535,7 @@ body{padding-top:42px;}
 <div class="section">
   <div class="sec-header"><div class="sec-icon gold">🪑</div><div class="sec-title">Chair Upgrades</div><span class="sec-badge badge-gold">20% IPS Discount</span></div>
   <div class="notice" id="chair-notice">San Dimas: Standard chairs included free. Padded &amp; Gold Chiavari available as upgrades.</div>
-  <table class="upg-table"><thead><tr><th></th><th>Item</th><th>Full Price</th><th>IPS Price (20% off)</th><th>Qty</th></tr></thead>
+  <table class="upg-table"><thead><tr><th></th><th>Item</th><th>Full Price</th><th>IPS Price (20% off)</th><th>Qty</th><th>Comp</th></tr></thead>
   <tbody id="chair-upg-body"><tr>
       <td><input type="checkbox" class="upg-cb" id="cu0_cb" onchange="toggleUpg(&#39;cu0&#39;)"></td>
       <td><label class="upg-name" for="cu0_cb">Padded White Folding Chairs</label><div class="upg-note">San Dimas only</div></td>
@@ -1529,7 +1529,7 @@ function renderChairIncRows(){
 }
 
 // ── UPGRADE TABLES ─────────────────────────────────────────────────────────────
-function renderUpgTable(items,tbodyId,hasColor,hasOption){
+function renderUpgTable(items,tbodyId,hasColor,hasOption,hasComp){
   let tb=document.getElementById(tbodyId);
   if(!tb)return;
   tb.innerHTML='';
@@ -1541,13 +1541,14 @@ function renderUpgTable(items,tbodyId,hasColor,hasOption){
     let selCell=(u.hasSel)?`<td><select class="sel-in" id="${u.id}_sel">${u.selOpts.map(o=>`<option>${o}</option>`).join('')}</select></td>`:'';
     let extraCell=colorCell||locCell||selCell||(hasOption?'<td></td>':'');
     let priceIn=u.customPrice?`<input class="inc-num" type="number" id="${u.id}_price" placeholder="$" step="0.01" min="0" onchange="calc()" style="width:60px;display:none;"/>`:'';
+    let compCell=hasComp?`<td style="text-align:center;"><label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);cursor:pointer;justify-content:center;" title="Give this item away at no charge"><input type="checkbox" id="${u.id}_comp" onchange="calc()" style="width:13px;height:13px;accent-color:var(--gold);">Comp</label></td>`:'';
     tb.innerHTML+=`<tr>
       <td><input type="checkbox" class="upg-cb" id="${u.id}_cb" onchange="toggleUpg('${u.id}')"/></td>
       <td><label class="upg-name" for="${u.id}_cb">${u.name}</label>${u.note?`<div class="upg-note">${u.note}</div>`:''}</td>
       <td><span class="upg-full">${u.customPrice?'Custom':'$'+u.full.toFixed(2)+'/'+u.unit}</span></td>
       <td><span class="upg-ips">${ipsStr}</span>${priceIn}</td>
       <td><input type="number" class="upg-qty" id="${u.id}_qty" value="1" min="1" onchange="calc()"/></td>
-      ${extraCell}
+      ${extraCell}${compCell}
     </tr>`;
   });
 }
@@ -1725,6 +1726,8 @@ function calc(){
   [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES,...LINEN_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
     let cb=document.getElementById(u.id+'_cb');if(!cb||!cb.checked)return;
     let qty=parseInt(document.getElementById(u.id+'_qty')?.value)||1;
+    let isComped=document.getElementById(u.id+'_comp')?.checked;
+    if(isComped)return; // given away at no charge — contributes $0 to both full and IPS totals
     if(u.customPrice){
       let p=parseFloat(document.getElementById(u.id+'_price')?.value)||0;
       upgFull+=p*qty; upgIPS+=p*0.8*qty;
@@ -1831,11 +1834,16 @@ function buildLines(t){
     let loc=document.getElementById(u.id+'_loc')?.value||'';
     let sel=document.getElementById(u.id+'_sel')?.value||'';
     let extra=[col,loc,sel].filter(Boolean).join(' · ');
+    let isComped=document.getElementById(u.id+'_comp')?.checked;
     let ipsU,fullU;
     if(u.customPrice){fullU=parseFloat(document.getElementById(u.id+'_price')?.value)||0;ipsU=fullU*0.8;}
     else{fullU=u.full;ipsU=u.full*0.8;}
-    discLine+=fullU*0.2*qty;
-    lines.push({item:'• '+u.name+(extra?' ('+extra+')':''),qty,unit:'$'+ipsU.toFixed(2)+'/'+u.unit,ext:'$'+(ipsU*qty).toFixed(2),cls:'upg-r'});
+    if(isComped){
+      lines.push({item:'• '+u.name+(extra?' ('+extra+')':'')+' — Comped',qty,unit:'$0.00/'+u.unit,ext:'$0.00',cls:'inc'});
+    } else {
+      discLine+=fullU*0.2*qty;
+      lines.push({item:'• '+u.name+(extra?' ('+extra+')':''),qty,unit:'$'+ipsU.toFixed(2)+'/'+u.unit,ext:'$'+(ipsU*qty).toFixed(2),cls:'upg-r'});
+    }
   });
   // Add linen rows to quote output
   calcLinens().lines.forEach(l=>{
@@ -2864,7 +2872,7 @@ function toggleDouble(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 renderInclusionToggles();
-renderUpgTable(CHAIR_UPGRADES,'chair-upg-body',false,false);
+renderUpgTable(CHAIR_UPGRADES,'chair-upg-body',false,false,true);
 renderLinenRows();
 renderUpgTable(LINEN_UPGRADES,'linen-addon-upg-body',false,false);
 renderUpgTable(TABLE_UPGRADES,'table-upg-body',false,true);
