@@ -1878,7 +1878,7 @@ function buildLines(t){
       let extraHrs=hrsEl?parseInt(hrsEl.textContent)||0:0;
       if(extraHrs>0){price+=extraHrs*(s.hrsRate||0);label+=` + ${extraHrs}hr extra`;}
     }
-    if(s.id==='bar1'||s.id==='bar2')label+=' – Beverages Not Included';
+    if(s.id==='bar1'||s.id==='bar2')label+=' – Customer-Provided Beverages';
     if(s.type==='ice'){let idx=parseInt(document.getElementById('svc_'+s.id+'_sel')?.value)||0;price=ICE_OPTIONS[idx].price;label=` (${ICE_OPTIONS[idx].lbs} lbs)`;}
     else if(s.type==='custom')price=parseFloat(document.getElementById('svc_'+s.id+'_val')?.value)||0;
     else if(s.type==='pdsection'){
