@@ -791,12 +791,12 @@ body{padding-top:42px;}
   <div class="svc-grid" id="svc-grid"><div class="svc-card" id="svc-card-bar1">
       <div class="svc-top" onclick="toggleSvc(&#39;bar1&#39;)">
         <input type="checkbox" class="svc-cb" id="svc_bar1" onclick="event.stopPropagation();applyS(&#39;bar1&#39;)">
-        <div class="svc-info"><div class="svc-name">Bartending – Tier 1</div><div class="svc-note">Beer, wine, champagne, seltzers · $50/hr · 5hr min (Azusa) = $250 · Add extra hours at $50/hr</div></div>
+        <div class="svc-info"><div class="svc-name">Bartending Service – Tier 1</div><div class="svc-note">Beer, wine, champagne, seltzers · $50/hr · 5hr min (Azusa) = $250 · Add extra hours at $50/hr</div></div>
         <div class="svc-price">$250</div>
       </div><div class="svc-sub" id="svc-sub-hrs-bar1" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $50/hr</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar1&#39;,-1)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_bar1_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar1&#39;,1)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_bar1_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div></div><div class="svc-card" id="svc-card-bar2">
       <div class="svc-top" onclick="toggleSvc(&#39;bar2&#39;)">
         <input type="checkbox" class="svc-cb" id="svc_bar2" onclick="event.stopPropagation();applyS(&#39;bar2&#39;)">
-        <div class="svc-info"><div class="svc-name">Bartending – Tier 2</div><div class="svc-note">Hard Liquor: Shots or Mixed Cocktails · $90/hr · 5hr min = $450 · Add extra hours at $90/hr</div></div>
+        <div class="svc-info"><div class="svc-name">Bartending Service – Tier 2</div><div class="svc-note">Hard Liquor: Shots or Mixed Cocktails · $90/hr · 5hr min = $450 · Add extra hours at $90/hr</div></div>
         <div class="svc-price">$450</div>
       </div><div class="svc-sub" id="svc-sub-hrs-bar2" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $90/hr</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar2&#39;,-1)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_bar2_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar2&#39;,1)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_bar2_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div></div><div class="svc-card" id="svc-card-vip">
       <div class="svc-top" onclick="toggleSvc(&#39;vip&#39;)">
@@ -1260,8 +1260,8 @@ function calcPD(){
 }
 
 const SERVICES=[
-  {id:'bar1',name:'Bartending – Tier 1',note:'Beer, wine, champagne, seltzers · $50/hr · 5hr min (Azusa) = $250 · Add extra hours at $50/hr',price:250,type:'fixed',extraHrs:true,hrsRate:50},
-  {id:'bar2',name:'Bartending – Tier 2',note:'Hard Liquor: Shots or Mixed Cocktails · $90/hr · 5hr min = $450 · Add extra hours at $90/hr',price:450,type:'fixed',extraHrs:true,hrsRate:90},
+  {id:'bar1',name:'Bartending Service – Tier 1',note:'Beer, wine, champagne, seltzers · $50/hr · 5hr min (Azusa) = $250 · Add extra hours at $50/hr',price:250,type:'fixed',extraHrs:true,hrsRate:50},
+  {id:'bar2',name:'Bartending Service – Tier 2',note:'Hard Liquor: Shots or Mixed Cocktails · $90/hr · 5hr min = $450 · Add extra hours at $90/hr',price:450,type:'fixed',extraHrs:true,hrsRate:90},
   {id:'vip',name:'VIP Room Add-On',note:'Private VIP suite',price:100,type:'fixed'},
   {id:'ice',name:'Ice Service',note:'One pound per person recommended · 40lb=$20 · 60lb=$30 · 80lb=$40 · 100lb=$50',price:0,type:'ice'},
   // Pipe & Drape moved to dedicated section below
