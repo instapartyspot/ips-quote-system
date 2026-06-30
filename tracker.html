@@ -414,7 +414,16 @@ function daysUntil(dateStr){
 }
 function fmtShortDate(isoOrDateStr){
   if(!isoOrDateStr)return '—';
-  let d=new Date(isoOrDateStr);
+  let d;
+  // Plain date-only strings (YYYY-MM-DD) parse as UTC midnight by default,
+  // which can roll back to the previous day once displayed in local time
+  // (e.g. Pacific). Parse these explicitly as local time instead.
+  let dateOnlyMatch=/^(\d{4})-(\d{2})-(\d{2})$/.exec(isoOrDateStr);
+  if(dateOnlyMatch){
+    d=new Date(parseInt(dateOnlyMatch[1]),parseInt(dateOnlyMatch[2])-1,parseInt(dateOnlyMatch[3]));
+  }else{
+    d=new Date(isoOrDateStr);
+  }
   if(isNaN(d))return isoOrDateStr;
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 }
