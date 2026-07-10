@@ -143,6 +143,7 @@ h1,h2,h3{font-family:'Playfair Display',serif;}
     </div>
     <div class="header-actions">
       <button class="btn btn-secondary" onclick="refreshQuotes()">🔄 Refresh</button>
+      <button class="btn btn-sync" onclick="syncCalendarBookings()" id="sync-btn" title="Scan Gmail for new Google Calendar tour bookings and add them to the Tracker">📅 Sync Calendar</button>
       <button class="btn btn-primary" onclick="openManualAddModal()">+ Add Quote Manually</button>
     </div>
   </div>
@@ -162,6 +163,7 @@ h1,h2,h3{font-family:'Playfair Display',serif;}
 
   <div class="filter-bar" id="filter-bar">
     <div class="filter-chip active" data-stage="__all__" onclick="setStageFilter('__all__')">All</div>
+    <div class="filter-chip" data-stage="Tour Scheduled" onclick="setStageFilter('Tour Scheduled')">Tour Scheduled</div>
     <div class="filter-chip" data-stage="Quote Sent" onclick="setStageFilter('Quote Sent')">Quote Sent</div>
     <div class="filter-chip" data-stage="Follow-Up 1 Sent" onclick="setStageFilter('Follow-Up 1 Sent')">Follow-Up 1</div>
     <div class="filter-chip" data-stage="Follow-Up 2 Sent" onclick="setStageFilter('Follow-Up 2 Sent')">Follow-Up 2</div>
@@ -380,6 +382,21 @@ async function callIpsBackend(action,payload){
   }
 }
 
+async function syncCalendarBookings(){
+  if(!ipsSignedInEmail){alert('Please sign in first.');return;}
+  let btn=document.getElementById('sync-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Syncing...';}
+  let result=await callIpsBackend('syncCalendarBookings',{});
+  if(btn){btn.disabled=false;btn.textContent='📅 Sync Calendar';}
+  if(result.ok){
+    let msg=result.added>0?`✅ ${result.added} new tour booking${result.added>1?'s':''} added to the Tracker.`:'✅ No new bookings found — all caught up!';
+    alert(msg);
+    refreshQuotes();
+  }else{
+    alert('⚠️ Sync failed: '+(result.error||'unknown error'));
+  }
+}
+
 async function refreshQuotes(){
   if(!ipsSignedInEmail){
     document.getElementById('quotes-container').innerHTML='<div class="loading-msg">Sign in with Google (top bar) to load your quotes.</div>';
@@ -495,7 +512,7 @@ function quickFilterAction(type){
 // RENDER — KPI Strip
 // ════════════════════════════════════════════════════════════════════════
 function renderKPIs(){
-  let stages=['Quote Sent','Follow-Up 1 Sent','Follow-Up 2 Sent','Negotiating'];
+  let stages=['Tour Scheduled','Quote Sent','Follow-Up 1 Sent','Follow-Up 2 Sent','Negotiating'];
   let stageCounts={};
   stages.forEach(s=>stageCounts[s]=allQuotes.filter(q=>q.Status===s).length);
 
@@ -514,6 +531,7 @@ function renderKPIs(){
   let avgCloseDays=closeDays.length>0?Math.round(closeDays.reduce((a,b)=>a+b,0)/closeDays.length):null;
 
   let cards=[
+    {label:'Tour Scheduled',value:stageCounts['Tour Scheduled']},
     {label:'Quote Sent',value:stageCounts['Quote Sent']},
     {label:'Follow-Up 1',value:stageCounts['Follow-Up 1 Sent']},
     {label:'Follow-Up 2',value:stageCounts['Follow-Up 2 Sent']},
@@ -597,6 +615,24 @@ function renderQuoteCard(q){
   let eventDays=daysUntil(q.EventDate);
   let expiringFlag=quoteIsExpiringSoon(q)?'<span style="color:#e17055;font-weight:700;">⚠️ Expires soon</span>':(quoteIsExpired(q)?'<span style="color:#e17055;font-weight:700;">⛔ Expired — needs a decision</span>':'');
 
+  // #1 — First line of notes visible on the card without clicking
+  let firstNoteLine='';
+  if(q.Notes&&q.Notes.trim()){
+    let firstLine=q.Notes.trim().split('\n')[0].trim();
+    if(firstLine)firstNoteLine=`<div class="qc-meta" style="color:var(--text2);font-style:italic;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${firstLine.replace(/"/g,'&quot;')}">📝 ${firstLine}</div>`;
+  }
+
+  // #2 — Mode label (handles Tour Scheduled, Quote, Sales Order)
+  let modeLabel=q.Mode==='SALES-ORDER'?'Sales Order':q.Mode==='TOUR-SCHEDULED'?'Tour Scheduled':'Quote';
+
+  // #5 — FU sent visual indicators
+  let fu1Sent=q.Status==='Follow-Up 1 Sent'||q.Status==='Follow-Up 2 Sent'||q.Status==='Negotiating'||q.Status==='Booked';
+  let fu2Sent=q.Status==='Follow-Up 2 Sent'||q.Status==='Negotiating'||q.Status==='Booked';
+  let fu1Style=fu1Sent?'background:rgba(9,132,227,.25);border-color:var(--blue2);color:var(--blue2);':'';
+  let fu2Style=fu2Sent?'background:rgba(200,168,75,.2);border-color:var(--gold);color:var(--gold2);':'';
+  let fu1Label=fu1Sent?'✓ FU1 Sent':'Send FU1';
+  let fu2Label=fu2Sent?'✓ FU2 Sent':'Send FU2';
+
   return `
   <div class="quote-card" data-id="${q.ID}">
     <div class="temp-tag ${temp.cls||''}" title="${temp.label||''}">${temp.icon||''}</div>
@@ -604,6 +640,7 @@ function renderQuoteCard(q){
       <div class="qc-name">${q.FirstName||''} ${q.LastName||''}${repeat?'<span class="repeat-flag">★ Repeat Client</span>':''}</div>
       <div class="qc-meta">${q.Email||'—'} · ${q.Phone||'—'}</div>
       <div class="qc-meta">${expiringFlag}</div>
+      ${firstNoteLine}
     </div>
     <div>
       <div class="qc-field-label">Event</div>
@@ -614,17 +651,17 @@ function renderQuoteCard(q){
     <div>
       <div class="qc-field-label">Total / Rev</div>
       <div class="qc-total">$${(parseFloat(q.Total)||0).toLocaleString(undefined,{minimumFractionDigits:2})}</div>
-      <div class="qc-meta">${q.Mode==='SALES-ORDER'?'Sales Order':'Quote'} · Rev ${q.RevisionNum||1} · ${contactDays!==null?contactDays+'d since contact':''}</div>
+      <div class="qc-meta">${modeLabel} · Rev ${q.RevisionNum||1} · ${contactDays!==null?contactDays+'d since contact':''}</div>
     </div>
     <div>
       <div class="qc-field-label">Stage</div>
       <select class="qc-status-select" data-status="${q.Status}" onchange="handleStatusChange('${q.ID}', this.value)">
-        ${['Quote Sent','Follow-Up 1 Sent','Follow-Up 2 Sent','Negotiating','Booked','Lost'].map(s=>`<option value="${s}" ${s===q.Status?'selected':''}>${s}</option>`).join('')}
+        ${['Tour Scheduled','Quote Sent','Follow-Up 1 Sent','Follow-Up 2 Sent','Negotiating','Booked','Lost'].map(s=>`<option value="${s}" ${s===q.Status?'selected':''}>${s}</option>`).join('')}
       </select>
     </div>
     <div class="qc-actions">
-      <button class="qc-btn fu1" onclick="sendFollowUp('${q.ID}',1)">Send FU1</button>
-      <button class="qc-btn fu2" onclick="sendFollowUp('${q.ID}',2)">Send FU2</button>
+      <button class="qc-btn fu1" style="${fu1Style}" onclick="sendFollowUp('${q.ID}',1)">${fu1Label}</button>
+      <button class="qc-btn fu2" style="${fu2Style}" onclick="sendFollowUp('${q.ID}',2)">${fu2Label}</button>
       <button class="qc-btn custom" onclick="openCustomEmailModal('${q.ID}')">Custom</button>
       <button class="qc-btn" onclick="toggleExpand('${q.ID}')">Notes ▾</button>
     </div>
