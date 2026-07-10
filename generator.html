@@ -279,8 +279,8 @@ body{padding-top:42px;}
   <div class="send-modal">
     <h2 id="sm-title">Review Before Sending</h2>
     <div class="sm-meta" id="sm-meta">To: —</div>
-    <div class="sm-field"><div class="sm-label">Subject</div><div class="sm-value" id="sm-subject"></div></div>
-    <div class="sm-field"><div class="sm-label">Body</div><div class="sm-value" id="sm-body"></div></div>
+    <div class="sm-field"><div class="sm-label">Subject <span style="font-size:10px;color:var(--text3);font-weight:400;">(editable)</span></div><div class="sm-value" id="sm-subject" contenteditable="true" style="outline:none;"></div></div>
+    <div class="sm-field"><div class="sm-label">Body <span style="font-size:10px;color:var(--text3);font-weight:400;">(editable — click to make changes before sending)</span></div><div class="sm-value" id="sm-body" contenteditable="true" style="outline:none;min-height:80px;"></div></div>
     <div class="sm-actions">
       <button class="sm-btn-cancel" onclick="closeSendModal()">Cancel</button>
       <button class="sm-btn-confirm" onclick="confirmSend()">✅ Confirm &amp; Send</button>
@@ -2142,7 +2142,6 @@ function buildPdfHtml(){
   ${payBlock}
   ${isOrder?`<div class="page-break"><div class="tc-title">RENTAL LEASE AGREEMENT — TERMS & CONDITIONS</div><div class="tc-body">${tcText.replace(/\n/g,'<br/>')}</div>
 </div>`:''}
-  ${notes?`<div style="margin-top:10px;font-size:10px;color:#666;border-top:1px solid #eee;padding-top:6px;"><strong>Notes:</strong> ${notes}</div>`:''}
   <div class="footer">Insta Party Spot / VMA Party Rentals · www.instapartyspot.com · instapartyspot@gmail.com · 626.629.8466</div>
   </body></html>`;
 
@@ -2584,13 +2583,14 @@ function closeSendModal(){
 async function confirmSend(){
   if(!ipsPendingSend)return;
   let p=ipsPendingSend;
-  // If the body was edited live in the preview (contenteditable), pull the
-  // current DOM content so edits aren't lost — as HTML if this is a table
-  // send, otherwise as plain text converted to <br> line breaks.
+  // Read subject and body from live DOM so any edits made in the preview
+  // are what actually get sent, not the original cached values.
+  let subjectEl=document.getElementById('sm-subject');
   let bodyEl=document.getElementById('sm-body');
+  let subject=subjectEl?subjectEl.textContent.trim():p.subject;
   let htmlBody=p.htmlBodyOverride?bodyEl.innerHTML:(bodyEl.textContent||p.bodyText||'').replace(/\n/g,'<br>');
   let result=await callIpsBackend('sendEmail',{
-    to:p.to,subject:p.subject,htmlBody:htmlBody,
+    to:p.to,subject:subject,htmlBody:htmlBody,
     attachmentBase64:p.attachmentBase64,attachmentName:p.attachmentName,
     quoteId:p.quoteId,markStatus:p.markStatus
   });
