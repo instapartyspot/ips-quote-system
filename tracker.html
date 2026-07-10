@@ -573,8 +573,8 @@ function renderQuotes(){
   else if(activeQuickFilter==='expiring')list=list.filter(quoteIsExpiringSoon);
   else if(activeQuickFilter==='cold')list=list.filter(q=>isOpenQuote(q)&&(daysSince(q.LastContactAt||q.CreatedAt)||0)>=10);
 
-  // Stage filter
-  if(currentStageFilter!=='__all__')list=list.filter(q=>q.Status===currentStageFilter);
+  // Stage filter — trim status values defensively since Sheet cells can have trailing whitespace
+  if(currentStageFilter!=='__all__')list=list.filter(q=>(q.Status||'').trim()===currentStageFilter);
 
   // Search
   if(search){
