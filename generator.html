@@ -526,7 +526,7 @@ body{padding-top:42px;}
     <button class="add-row-btn" onclick="addLinenRow(&#39;Other&#39;)">+ Other</button>
   </div>
   <div class="notice" style="margin-top:14px;">Runners &amp; Overlays — separate items, priced individually (not the flat $13.60 linen rate above).</div>
-  <table class="upg-table"><thead><tr><th></th><th>Item</th><th>Full Price</th><th>IPS Price (20% off)</th><th>Qty</th></tr></thead>
+  <table class="upg-table"><thead><tr><th></th><th>Item</th><th>Full Price</th><th>IPS Price (20% off)</th><th>Qty</th><th>Color</th></tr></thead>
   <tbody id="linen-addon-upg-body"></tbody>
   </table>
 </div>
@@ -2877,7 +2877,7 @@ function toggleDouble(){
 renderInclusionToggles();
 renderUpgTable(CHAIR_UPGRADES,'chair-upg-body',false,false,true);
 renderLinenRows();
-renderUpgTable(LINEN_UPGRADES,'linen-addon-upg-body',false,false);
+renderUpgTable(LINEN_UPGRADES,'linen-addon-upg-body',true,false);
 renderUpgTable(TABLE_UPGRADES,'table-upg-body',false,true);
 renderUpgTable(DECOR_UPGRADES,'decor-upg-body',false,false);
 renderPDGrid();
