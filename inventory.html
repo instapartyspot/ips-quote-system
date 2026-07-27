@@ -341,12 +341,19 @@ function aggregateOrders(orders){
 // NOTE PERSISTENCE
 // ═══════════════════════════════════════════════════════════
 async function saveNote(key,checked,need){
+  // Optimistically update local cache
   allNotes[key]={checked,need};
-  await callBackend('saveInventoryNotes',{key,checked,need});
+  let res=await callBackend('saveInventoryNotes',{key,checked,need});
+  if(!res||!res.ok){
+    // Revert local cache on failure so it's not misleadingly out of sync
+    delete allNotes[key];
+    return false;
+  }
+  return true;
 }
 
-function noteKey(win,venue,cat,itemKey){
-  return [win,venue||'all',cat,itemKey].join('::').replace(/\s+/g,'_');
+function noteKey(cat,itemKey){
+  return [cat,itemKey].join('::').replace(/\s+/g,'_');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -400,7 +407,7 @@ function renderTotals(agg,count){
     else{
       items.forEach(item=>{
         let ik=item.name+(item.color?'|'+item.color:'')+(item.option?'|'+item.option:'');
-        let nk=noteKey(currentWindow,currentVenue,c.key,ik);
+        let nk=noteKey(c.key,ik);
         let saved=allNotes[nk]||{};
         let checked=saved.checked||false;
         let need=saved.need||'';
@@ -474,15 +481,24 @@ function restoreNotes(){
 async function onCheckChange(cb){
   let nk=cb.dataset.nk;
   let nameEl=document.getElementById('name-'+nk.replace(/[^a-zA-Z0-9]/g,'_'));
+  let wasChecked=!cb.checked; // what it was before this click
+  // Optimistically update visual immediately
   if(nameEl)nameEl.classList.toggle('done',cb.checked);
   let needEl=cb.closest('.inv-item-row')?.querySelector('.inv-need-input');
   let need=needEl?needEl.value:'';
-  await saveNote(nk,cb.checked,need);
+  let ok=await saveNote(nk,cb.checked,need);
+  if(!ok){
+    // Revert visual on failure
+    cb.checked=wasChecked;
+    if(nameEl)nameEl.classList.toggle('done',wasChecked);
+    alert('⚠️ Could not save checkmark — check your connection and try again.');
+  }
 }
 async function onNeedChange(input){
   let nk=input.dataset.nk;
   let cb=input.closest('.inv-item-row')?.querySelector('.inv-check');
-  await saveNote(nk,cb?cb.checked:false,input.value);
+  let ok=await saveNote(nk,cb?cb.checked:false,input.value);
+  if(!ok)alert('⚠️ Could not save "Need" value — check your connection and try again.');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -568,7 +584,7 @@ async function exportPDF(){
     html+=`<div class="cat-title">${c.label}</div>`;
     items.forEach(item=>{
       let ik=item.name+(item.color?'|'+item.color:'')+(item.option?'|'+item.option:'');
-      let nk=noteKey(currentWindow,currentVenue,c.key,ik);
+      let nk=noteKey(c.key,ik);
       let saved=allNotes[nk]||{};
       html+=`<div class="item">${fmtItem(item)}${saved.checked?' ✓':''}</div>`;
       if(saved.need)html+=`<div class="need-line" style="padding-left:16px;">Need: ${saved.need}</div>`;
