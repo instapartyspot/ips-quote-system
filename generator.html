@@ -2544,7 +2544,8 @@ async function syncQuoteToTracker(state, mode, byName){
   let t=calc();
   let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
   let locName=currentLoc==='sd'?'San Dimas':'Azusa';
-  let lineItems=buildLineItemsJSON(t);
+  // Only capture inventory for Sales Orders — quotes don't have confirmed inventory needs yet
+  let lineItems=mode==='SALES-ORDER'?buildLineItemsJSON(t):null;
   return await callIpsBackend('syncQuote',{
     fname:state.fname,lname:state.lname,email:state.email,phone:state.phone,
     evdate:state.evdate,sessstart:state.sessstart,sessend:state.sessend,evtype:getEvtype(),
@@ -2588,6 +2589,7 @@ function buildLineItemsJSON(t){
   SERVICES.forEach(s=>{
     let cb=document.getElementById('svc_'+s.id);
     if(!cb||!cb.checked)return;
+    if(s.id==='vip')return; // VIP Room is always available, never needs inventory tracking
     let val=parseFloat(document.getElementById('svc_'+s.id+'_val')?.value)||0;
     let price=val||s.price||0;
     let extraHrsEl=document.getElementById('svc_'+s.id+'_extrahrs');
