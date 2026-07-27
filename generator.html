@@ -2544,12 +2544,76 @@ async function syncQuoteToTracker(state, mode, byName){
   let t=calc();
   let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
   let locName=currentLoc==='sd'?'San Dimas':'Azusa';
+  let lineItems=buildLineItemsJSON(t);
   return await callIpsBackend('syncQuote',{
     fname:state.fname,lname:state.lname,email:state.email,phone:state.phone,
     evdate:state.evdate,sessstart:state.sessstart,sessend:state.sessend,evtype:getEvtype(),
     venue:locName,mode:mode,total:finalTotal,staffInitials:byName,
-    leadsource:state.leadsource
+    leadsource:state.leadsource,lineItems:JSON.stringify(lineItems)
   });
+}
+
+// Builds a compact JSON object of all inventory items in the current quote.
+// Stored in the LineItems column of the Tracker Sheet — never shown in the
+// Quote Tracker UI, only read by the Inventory Tracker.
+function buildLineItemsJSON(t){
+  let inv={linens:[],upgrades:[],services:[],vendors:[],pipedrape:[]};
+
+  // ── Linen rows (main flat-rate linens with size/color/purpose/qty)
+  document.querySelectorAll('#linen-rows > div').forEach(row=>{
+    let inputs=row.querySelectorAll('input,select');
+    let size=inputs[0]?.value||'';
+    let color=inputs[1]?.value||'';
+    let purpose=inputs[2]?.value||'';
+    let qty=parseInt(inputs[3]?.value)||1;
+    if(size)inv.linens.push({name:size+' Linen',color,purpose,qty});
+  });
+
+  // ── Upgrade tables: CHAIR + TABLE + DECOR + PHOTO + LINEN (Runner/Overlay)
+  [...CHAIR_UPGRADES,...TABLE_UPGRADES,...DECOR_UPGRADES,...PHOTO_UPGRADES,...LINEN_UPGRADES].filter(u=>u&&u.id).forEach(u=>{
+    let cb=document.getElementById(u.id+'_cb');
+    if(!cb||!cb.checked)return;
+    let qty=parseInt(document.getElementById(u.id+'_qty')?.value)||1;
+    let col=document.getElementById(u.id+'_col')?.value||'';
+    let sel=document.getElementById(u.id+'_sel')?.value||'';
+    let isComped=document.getElementById(u.id+'_comp')?.checked||false;
+    let price=isComped?0:u.full*0.8*qty;
+    // Categorize by which array this upgrade belongs to
+    let cat='upgrades';
+    if(LINEN_UPGRADES.find(x=>x.id===u.id)) cat='linens';
+    inv[cat].push({name:u.name,qty,color:col,option:sel,comped:isComped,price});
+  });
+
+  // ── Services
+  SERVICES.forEach(s=>{
+    let cb=document.getElementById('svc_'+s.id);
+    if(!cb||!cb.checked)return;
+    let val=parseFloat(document.getElementById('svc_'+s.id+'_val')?.value)||0;
+    let price=val||s.price||0;
+    let extraHrsEl=document.getElementById('svc_'+s.id+'_extrahrs');
+    let extraHrs=extraHrsEl?parseInt(extraHrsEl.textContent)||0:0;
+    if(extraHrs>0)price+=extraHrs*(s.hrsRate||0);
+    inv.services.push({name:s.name,price});
+  });
+
+  // ── Vendors — only include if a dollar amount has been entered
+  VENDORS.forEach(v=>{
+    let cb=document.getElementById('vnd_'+v.id);
+    if(!cb||!cb.checked)return;
+    let val=parseFloat(document.getElementById('vnd_'+v.id+'_val')?.value)||0;
+    if(val>0)inv.vendors.push({name:v.name,price:val});
+  });
+
+  // ── Pipe & Drape walls
+  PD_WALLS.forEach(w=>{
+    let card=document.getElementById('pdc_'+w.id);
+    if(!card||!card.classList.contains('active'))return;
+    let col=document.getElementById('pdcol_'+w.id)?.value||'';
+    let qty=w.hasQty?parseInt(document.getElementById('pdqty_'+w.id)?.value||1):1;
+    inv.pipedrape.push({name:w.name,color:col,qty,price:w.price*qty});
+  });
+
+  return inv;
 }
 
 // ── SEND MODAL (shared by Generator's Send button) ─────────────────────
