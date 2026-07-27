@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPS Inventory Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#08080f;--bg2:#0f0f1a;--card:#16162a;--card2:#1e1e32;--card3:#242438;
+  --border:#2a2a45;--border2:#383860;
+  --gold:#c8a84b;--gold2:#e8c96a;--gold3:#f5e4a0;--gold-dim:rgba(200,168,75,.12);
+  --purple:#6c5ce7;--purple2:#a29bfe;
+  --green:#00b894;--green2:#55efc4;
+  --red:#e17055;--blue:#0984e3;--blue2:#74b9ff;
+  --text:#eeeef5;--text2:#8888aa;--text3:#555577;
+  --radius:12px;--radius2:7px;--radius3:4px;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding-top:42px;}
+.wrap{max-width:1300px;margin:0 auto;padding:24px 28px 80px;}
+
+/* ── SYNC BAR ── */
+.gsync-bar{position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--card2);border-bottom:1px solid var(--border2);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.gsync-status{display:flex;align-items:center;gap:8px;color:var(--text2);}
+.gsync-dot{width:8px;height:8px;border-radius:50%;background:var(--red);}
+.gsync-dot.connected{background:var(--green);}
+.gsync-btn{background:var(--gold);color:#1a1a1a;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;}
+
+/* ── PAGE HEADER ── */
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.page-header h1{font-family:'Playfair Display',serif;font-size:26px;color:var(--gold2);}
+.page-header .sub{color:var(--text2);font-size:13px;margin-top:4px;}
+.header-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.btn{font-family:'DM Sans',sans-serif;border-radius:8px;cursor:pointer;border:none;font-weight:600;padding:10px 18px;font-size:13px;transition:.15s;}
+.btn:hover{opacity:.9;}
+.btn-gold{background:var(--gold);color:#1a1a1a;}
+.btn-secondary{background:none;border:1px solid var(--border2);color:var(--text);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-blue{background:var(--blue);color:#fff;}
+
+/* ── TIME WINDOW TABS ── */
+.tab-bar{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab{padding:10px 20px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;font-weight:600;}
+.tab.active{color:var(--gold2);border-bottom-color:var(--gold);}
+
+/* ── VENUE FILTER ── */
+.venue-bar{display:flex;gap:8px;margin-bottom:20px;}
+.venue-chip{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:12px;color:var(--text2);cursor:pointer;font-weight:600;}
+.venue-chip.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold2);}
+
+/* ── AGGREGATED TOTALS ── */
+.totals-section{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;}
+.totals-section h2{font-family:'Playfair Display',serif;font-size:17px;color:var(--gold2);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.totals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.totals-cat{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;}
+.totals-cat-title{font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px;}
+.inv-item-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border);}
+.inv-item-row:last-child{border-bottom:none;}
+.inv-check{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;margin-top:2px;flex-shrink:0;}
+.inv-check:checked+.inv-item-name{text-decoration:line-through;color:var(--text3);}
+.inv-item-name{font-size:13px;color:var(--text);}
+.inv-item-name.done{text-decoration:line-through;color:var(--text3);}
+.inv-need{display:flex;align-items:center;gap:6px;margin-top:4px;grid-column:2/-1;}
+.inv-need-label{font-size:10px;color:var(--text3);white-space:nowrap;}
+.inv-need-input{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;font-size:12px;width:120px;font-family:'DM Sans',sans-serif;}
+.inv-need-input:focus{outline:none;border-color:var(--gold);}
+.totals-empty{color:var(--text3);font-size:13px;font-style:italic;padding:4px 0;}
+
+/* ── EVENT CARDS ── */
+.event-cards{display:flex;flex-direction:column;gap:14px;}
+.event-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;}
+.event-card-header{background:var(--card2);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.event-card-name{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);}
+.event-card-meta{font-size:12px;color:var(--text2);margin-top:2px;}
+.event-card-badge{background:var(--gold-dim);border:1px solid rgba(200,168,75,.3);color:var(--gold2);border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;}
+.event-card-body{padding:14px 18px;}
+.event-inv-cat{margin-bottom:12px;}
+.event-inv-cat-title{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px;}
+.event-inv-item{font-size:12px;color:var(--text2);padding:2px 0;}
+.event-inv-item::before{content:'• ';color:var(--text3);}
+.no-inventory{font-size:12px;color:var(--text3);font-style:italic;}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
+.empty-state .big-icon{font-size:40px;margin-bottom:12px;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.visible{display:flex;}
+.modal-box{background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:24px;}
+.modal-box h2{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold2);margin-bottom:18px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.form-grid.full{grid-template-columns:1fr;}
+.form-field label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;}
+.form-field input,.form-field select,.form-field textarea{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:9px 10px;font-size:13px;font-family:'DM Sans',sans-serif;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.btn-cancel{background:none;border:1px solid var(--border2);color:var(--text2);padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:600;}
+.btn-confirm{background:var(--green);color:#fff;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;}
+
+/* ── PRINT STYLES ── */
+@media print{
+  body{background:#fff;color:#000;padding:0;}
+  .gsync-bar,.header-actions,.venue-bar,.tab-bar,.inv-check,.inv-need,.btn,.modal-overlay{display:none!important;}
+  .totals-section,.event-card{border:1px solid #ddd;break-inside:avoid;}
+  .event-card-header{background:#f5f5f5;}
+  .inv-item-name{color:#000;}
+  .totals-cat{border:1px solid #eee;}
+}
+</style>
+</head>
+<body>
+
+<div class="gsync-bar">
+  <div class="gsync-status"><span class="gsync-dot" id="gsync-dot"></span><span id="gsync-text">Not connected</span></div>
+  <button class="gsync-btn" id="gsync-btn" onclick="handleGsyncBtnClick()">Sign in with Google</button>
+</div>
+
+<div class="wrap">
+  <div class="page-header">
+    <div>
+      <h1>📦 IPS Inventory Tracker</h1>
+      <div class="sub">Upcoming booked events — all inventory items at a glance</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="loadAll()">🔄 Refresh</button>
+      <button class="btn btn-blue" onclick="exportPDF()">📄 Export PDF</button>
+      <button class="btn btn-gold" onclick="openManualAdd()">+ Add Event Manually</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" data-window="week" onclick="setWindow('week')">This Week</div>
+    <div class="tab" data-window="2weeks" onclick="setWindow('2weeks')">Next 2 Weeks</div>
+    <div class="tab" data-window="month" onclick="setWindow('month')">Next Month</div>
+    <div class="tab" data-window="3months" onclick="setWindow('3months')">Next 3 Months</div>
+  </div>
+
+  <div class="venue-bar">
+    <div class="venue-chip active" data-venue="all" onclick="setVenue('all')">All Venues</div>
+    <div class="venue-chip" data-venue="San Dimas" onclick="setVenue('San Dimas')">📍 San Dimas</div>
+    <div class="venue-chip" data-venue="Azusa" onclick="setVenue('Azusa')">📍 Azusa</div>
+  </div>
+
+  <div id="inv-content">
+    <div class="empty-state"><div class="big-icon">🔐</div>Sign in with Google (top bar) to load inventory.</div>
+  </div>
+</div>
+
+<!-- MANUAL ADD MODAL -->
+<div class="modal-overlay" id="manual-modal">
+  <div class="modal-box">
+    <h2>+ Add Event Inventory Manually</h2>
+    <div class="form-grid">
+      <div class="form-field"><label>First Name</label><input id="ma-fname"></div>
+      <div class="form-field"><label>Last Name</label><input id="ma-lname"></div>
+      <div class="form-field"><label>Event Date</label><input id="ma-evdate" type="date"></div>
+      <div class="form-field"><label>Session Start</label><input id="ma-sessstart" placeholder="e.g. 5:00 PM"></div>
+      <div class="form-field"><label>Session End</label><input id="ma-sessend" placeholder="e.g. 10:00 PM"></div>
+      <div class="form-field"><label>Venue</label><select id="ma-venue"><option>San Dimas</option><option>Azusa</option></select></div>
+      <div class="form-field"><label>Event Type</label><input id="ma-evtype" placeholder="e.g. Quinceañera"></div>
+    </div>
+    <div class="form-grid full">
+      <div class="form-field"><label>Linens (one per line, e.g. "8-ft Linen × 4 ivory")</label><textarea id="ma-linens" rows="3" placeholder="8-ft Linen × 4 ivory&#10;Round Linen × 2 white"></textarea></div>
+      <div class="form-field"><label>Upgrades / Decor (one per line)</label><textarea id="ma-upgrades" rows="3" placeholder="Digital Photobooth × 1&#10;VIP Room × 1"></textarea></div>
+      <div class="form-field"><label>Pipe & Drape (one per line)</label><textarea id="ma-pipedrape" rows="2" placeholder="Boxwood Hedge Wall × 1"></textarea></div>
+      <div class="form-field"><label>Services (one per line)</label><textarea id="ma-services" rows="2" placeholder="Bartending Service Tier 1 × 1"></textarea></div>
+      <div class="form-field"><label>Vendors — paid only (one per line, include price)</label><textarea id="ma-vendors" rows="2" placeholder="Taco Man Catering $800&#10;DJ Service $500"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeManualAdd()">Cancel</button>
+      <button class="btn-confirm" onclick="submitManualAdd()">Add to Tracker</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG — same as Generator and Tracker
+// ═══════════════════════════════════════════════════════════
+const IPS_GOOGLE_CLIENT_ID = '44184620232-lui0j92tn9qc5f2alsqtfe9tt7mds5to.apps.googleusercontent.com';
+const IPS_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtenWfNBXXK8o_7tIwARoFGA7mBOAyPS-1zJwqISeklP-Vj1pLTv5QWHiFOLo--ksodQ/exec';
+const IPS_ALLOWED_EMAIL = 'instapartyspot@gmail.com';
+const IPS_TOKEN_STORAGE_KEY = 'ips_quote_system_session';
+
+let ipsAccessToken=null, ipsSignedInEmail=null;
+let allOrders=[], allNotes={};
+let currentWindow='week', currentVenue='all';
+
+// ═══════════════════════════════════════════════════════════
+// SIGN-IN (shared localStorage session same as Generator/Tracker)
+// ═══════════════════════════════════════════════════════════
+function ipsSaveSession(t,e,x){try{localStorage.setItem(IPS_TOKEN_STORAGE_KEY,JSON.stringify({token:t,email:e,expiresAtMs:x}));}catch(err){}}
+function ipsLoadSession(){try{let r=localStorage.getItem(IPS_TOKEN_STORAGE_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function ipsClearSession(){try{localStorage.removeItem(IPS_TOKEN_STORAGE_KEY);}catch(e){}}
+
+function initIpsSignIn(){
+  if(typeof google==='undefined'||!google.accounts){setTimeout(initIpsSignIn,400);return;}
+  window.ipsTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:IPS_GOOGLE_CLIENT_ID,
+    scope:'https://www.googleapis.com/auth/userinfo.email',
+    callback:(resp)=>{
+      if(resp.error){alert('Sign-in failed: '+resp.error);return;}
+      ipsAccessToken=resp.access_token;
+      let exp=Date.now()+(parseInt(resp.expires_in||3600)*1000);
+      fetchSignedInEmail(exp);
+    }
+  });
+  let saved=ipsLoadSession();
+  if(saved&&saved.token&&saved.expiresAtMs>Date.now()){
+    ipsAccessToken=saved.token;ipsSignedInEmail=saved.email;
+    ipsShowConnected(saved.email);loadAll();
+  }else if(saved){ipsClearSession();}
+}
+window.addEventListener('DOMContentLoaded',initIpsSignIn);
+
+function handleGsyncBtnClick(){
+  if(ipsSignedInEmail){
+    if(confirm('Signed in as '+ipsSignedInEmail+'. Sign out?')){
+      ipsAccessToken=null;ipsSignedInEmail=null;ipsClearSession();
+      document.getElementById('gsync-dot').classList.remove('connected');
+      document.getElementById('gsync-text').textContent='Not connected';
+      document.getElementById('gsync-btn').textContent='Sign in with Google';
+    }
+  }else{if(window.ipsTokenClient)window.ipsTokenClient.requestAccessToken();}
+}
+
+function ipsShowConnected(email){
+  document.getElementById('gsync-dot').classList.add('connected');
+  document.getElementById('gsync-text').textContent='Connected as '+email;
+  document.getElementById('gsync-btn').textContent='✓ Signed In';
+}
+
+function fetchSignedInEmail(expiresAtMs){
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+ipsAccessToken}})
+    .then(r=>r.json()).then(info=>{
+      if(info.email!==IPS_ALLOWED_EMAIL){alert('Please sign in with instapartyspot@gmail.com.');ipsAccessToken=null;ipsClearSession();return;}
+      ipsSignedInEmail=info.email;
+      ipsShowConnected(info.email);
+      ipsSaveSession(ipsAccessToken,info.email,expiresAtMs||(Date.now()+3600000));
+      loadAll();
+    }).catch(()=>alert('Could not verify sign-in.'));
+}
+
+async function callBackend(action,payload){
+  if(!ipsSignedInEmail)return{ok:false,error:'Not signed in'};
+  try{
+    let res=await fetch(IPS_APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action,callerEmail:ipsSignedInEmail,payload})});
+    return await res.json();
+  }catch(e){return{ok:false,error:String(e)};}
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════
+async function loadAll(){
+  if(!ipsSignedInEmail){return;}
+  document.getElementById('inv-content').innerHTML='<div class="empty-state"><div class="big-icon">⏳</div>Loading inventory...</div>';
+  let [ordRes,notesRes]=await Promise.all([callBackend('listInventory',{}),callBackend('getInventoryNotes',{})]);
+  if(!ordRes.ok){document.getElementById('inv-content').innerHTML='<div class="empty-state">⚠️ Could not load inventory: '+(ordRes.error||'unknown')+'</div>';return;}
+  allOrders=ordRes.orders||[];
+  allNotes=notesRes.ok?notesRes.notes:{};
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATE HELPERS
+// ═══════════════════════════════════════════════════════════
+function parseDate(str){
+  if(!str)return null;
+  let m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(str);
+  if(m)return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]));
+  return new Date(str);
+}
+function fmtDate(str){
+  let d=parseDate(str);
+  if(!d||isNaN(d))return str||'—';
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
+function getWindowBounds(win){
+  let now=new Date(); now.setHours(0,0,0,0);
+  let end=new Date(now);
+  if(win==='week'){end.setDate(end.getDate()+(6-end.getDay()));}
+  else if(win==='2weeks'){end.setDate(end.getDate()+14);}
+  else if(win==='month'){end.setDate(end.getDate()+28);}
+  else if(win==='3months'){end.setDate(end.getDate()+90);}
+  return{start:now,end};
+}
+function inWindow(order,win){
+  let d=parseDate(order.eventDate);
+  if(!d||isNaN(d))return false;
+  let{start,end}=getWindowBounds(win);
+  return d>=start&&d<=end;
+}
+
+// ═══════════════════════════════════════════════════════════
+// INVENTORY PARSING
+// ═══════════════════════════════════════════════════════════
+function parseLineItems(order){
+  if(!order.lineItems)return{linens:[],upgrades:[],services:[],vendors:[],pipedrape:[]};
+  try{return JSON.parse(order.lineItems);}catch(e){return{linens:[],upgrades:[],services:[],vendors:[],pipedrape:[]};}
+}
+
+function fmtItem(item){
+  let parts=[item.name];
+  if(item.color)parts.push(item.color);
+  if(item.option)parts.push(item.option);
+  if(item.qty&&item.qty>1)parts.unshift('×'+item.qty);
+  else if(item.qty===1){}
+  let name=item.qty>1?item.name+' ×'+item.qty:item.name;
+  let detail=[item.color,item.option].filter(Boolean).join(', ');
+  let price=item.price?` — $${parseFloat(item.price).toFixed(2)}`:'';
+  let comped=item.comped?' (Comped)':'';
+  return name+(detail?' ('+detail+')':'')+comped+price;
+}
+
+function aggregateOrders(orders){
+  let agg={linens:{},upgrades:{},services:{},vendors:{},pipedrape:{}};
+  orders.forEach(o=>{
+    let inv=parseLineItems(o);
+    ['linens','upgrades','services','vendors','pipedrape'].forEach(cat=>{
+      (inv[cat]||[]).forEach(item=>{
+        let key=item.name+(item.color?'|'+item.color:'')+(item.option?'|'+item.option:'');
+        if(!agg[cat][key])agg[cat][key]={...item,qty:0,price:0};
+        agg[cat][key].qty+=(parseInt(item.qty)||1);
+        agg[cat][key].price+=(parseFloat(item.price)||0);
+      });
+    });
+  });
+  // Convert to arrays
+  let result={};
+  ['linens','upgrades','services','vendors','pipedrape'].forEach(cat=>{
+    result[cat]=Object.values(agg[cat]);
+  });
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTE PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+async function saveNote(key,checked,need){
+  allNotes[key]={checked,need};
+  await callBackend('saveInventoryNotes',{key,checked,need});
+}
+
+function noteKey(win,venue,cat,itemKey){
+  return [win,venue||'all',cat,itemKey].join('::').replace(/\s+/g,'_');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB / VENUE CONTROLS
+// ═══════════════════════════════════════════════════════════
+function setWindow(win){
+  currentWindow=win;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.window===win));
+  render();
+}
+function setVenue(venue){
+  currentVenue=venue;
+  document.querySelectorAll('.venue-chip').forEach(c=>c.classList.toggle('active',c.dataset.venue===venue));
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════════════════
+function render(){
+  let filtered=allOrders.filter(o=>inWindow(o,currentWindow));
+  if(currentVenue!=='all')filtered=filtered.filter(o=>(o.venue||'')===currentVenue);
+  filtered.sort((a,b)=>(parseDate(a.eventDate)||0)-(parseDate(b.eventDate)||0));
+  let container=document.getElementById('inv-content');
+  if(filtered.length===0){
+    container.innerHTML='<div class="empty-state"><div class="big-icon">✅</div>No booked events in this time window.</div>';
+    return;
+  }
+  let agg=aggregateOrders(filtered);
+  let html=renderTotals(agg,filtered.length)+renderCards(filtered);
+  container.innerHTML=html;
+  // Restore persisted note states
+  restoreNotes();
+}
+
+function renderTotals(agg,count){
+  let cats=[
+    {key:'linens',label:'🛏 Linens'},
+    {key:'upgrades',label:'🎭 Decor & Upgrades'},
+    {key:'services',label:'🍸 Services'},
+    {key:'vendors',label:'🌮 Vendors (Paid)'},
+    {key:'pipedrape',label:'🎪 Pipe & Drape'},
+  ];
+  let html=`<div class="totals-section">
+    <h2>📊 Combined Inventory — ${count} event${count!==1?'s':''} in window</h2>
+    <div class="totals-grid">`;
+  cats.forEach(c=>{
+    let items=agg[c.key]||[];
+    html+=`<div class="totals-cat"><div class="totals-cat-title">${c.label}</div>`;
+    if(items.length===0){html+=`<div class="totals-empty">Nothing in this window</div>`;}
+    else{
+      items.forEach(item=>{
+        let ik=item.name+(item.color?'|'+item.color:'')+(item.option?'|'+item.option:'');
+        let nk=noteKey(currentWindow,currentVenue,c.key,ik);
+        let saved=allNotes[nk]||{};
+        let checked=saved.checked||false;
+        let need=saved.need||'';
+        let label=fmtItem(item);
+        html+=`<div class="inv-item-row">
+          <input type="checkbox" class="inv-check" data-nk="${nk}" ${checked?'checked':''} onchange="onCheckChange(this)">
+          <span class="inv-item-name ${checked?'done':''}" id="name-${nk.replace(/[^a-zA-Z0-9]/g,'_')}">${label}</span>
+          <div></div>
+          <div class="inv-need" style="grid-column:2/-1;">
+            <span class="inv-need-label">Need:</span>
+            <input class="inv-need-input" data-nk="${nk}" value="${need.replace(/"/g,'&quot;')}" placeholder="e.g. 2 red" onblur="onNeedChange(this)">
+          </div>
+        </div>`;
+      });
+    }
+    html+='</div>';
+  });
+  html+='</div></div>';
+  return html;
+}
+
+function renderCards(orders){
+  if(orders.length===0)return '';
+  let html='<div class="event-cards">';
+  orders.forEach(o=>{
+    let inv=parseLineItems(o);
+    let hasSomeInv=['linens','upgrades','services','vendors','pipedrape'].some(k=>(inv[k]||[]).length>0);
+    let session=[o.sessStart,o.sessEnd].filter(Boolean).join('–');
+    html+=`<div class="event-card">
+      <div class="event-card-header">
+        <div>
+          <div class="event-card-name">${o.firstName||''} ${o.lastName||''}</div>
+          <div class="event-card-meta">${fmtDate(o.eventDate)}${session?' · '+session:''} · ${o.evtype||''}</div>
+        </div>
+        <span class="event-card-badge">📍 ${o.venue||'—'}</span>
+      </div>
+      <div class="event-card-body">`;
+    if(!hasSomeInv){html+=`<div class="no-inventory">No inventory data — re-save this order through the Generator to populate.</div>`;}
+    else{
+      let cats=[
+        {key:'linens',label:'Linens'},
+        {key:'upgrades',label:'Decor & Upgrades'},
+        {key:'services',label:'Services'},
+        {key:'vendors',label:'Vendors (Paid)'},
+        {key:'pipedrape',label:'Pipe & Drape'},
+      ];
+      cats.forEach(c=>{
+        let items=inv[c.key]||[];
+        if(items.length===0)return;
+        html+=`<div class="event-inv-cat"><div class="event-inv-cat-title">${c.label}</div>`;
+        items.forEach(item=>html+=`<div class="event-inv-item">${fmtItem(item)}</div>`);
+        html+='</div>';
+      });
+    }
+    html+='</div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function restoreNotes(){
+  document.querySelectorAll('.inv-item-name').forEach(el=>{
+    let cb=el.previousElementSibling;
+    if(cb&&cb.checked)el.classList.add('done');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTE CHANGE HANDLERS
+// ═══════════════════════════════════════════════════════════
+async function onCheckChange(cb){
+  let nk=cb.dataset.nk;
+  let nameEl=document.getElementById('name-'+nk.replace(/[^a-zA-Z0-9]/g,'_'));
+  if(nameEl)nameEl.classList.toggle('done',cb.checked);
+  let needEl=cb.closest('.inv-item-row')?.querySelector('.inv-need-input');
+  let need=needEl?needEl.value:'';
+  await saveNote(nk,cb.checked,need);
+}
+async function onNeedChange(input){
+  let nk=input.dataset.nk;
+  let cb=input.closest('.inv-item-row')?.querySelector('.inv-check');
+  await saveNote(nk,cb?cb.checked:false,input.value);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MANUAL ADD
+// ═══════════════════════════════════════════════════════════
+function openManualAdd(){document.getElementById('manual-modal').classList.add('visible');}
+function closeManualAdd(){document.getElementById('manual-modal').classList.remove('visible');}
+
+function parseTextareaToItems(text){
+  return text.trim().split('\n').filter(l=>l.trim()).map(l=>({name:l.trim()}));
+}
+
+async function submitManualAdd(){
+  let fname=document.getElementById('ma-fname').value.trim();
+  let lname=document.getElementById('ma-lname').value.trim();
+  if(!fname||!lname){alert('First and last name are required.');return;}
+  let inv={
+    linens:parseTextareaToItems(document.getElementById('ma-linens').value),
+    upgrades:parseTextareaToItems(document.getElementById('ma-upgrades').value),
+    pipedrape:parseTextareaToItems(document.getElementById('ma-pipedrape').value),
+    services:parseTextareaToItems(document.getElementById('ma-services').value),
+    vendors:parseTextareaToItems(document.getElementById('ma-vendors').value),
+  };
+  let payload={
+    fname,lname,
+    evdate:document.getElementById('ma-evdate').value,
+    sessstart:document.getElementById('ma-sessstart').value,
+    sessend:document.getElementById('ma-sessend').value,
+    venue:document.getElementById('ma-venue').value,
+    evtype:document.getElementById('ma-evtype').value,
+    lineItems:JSON.stringify(inv)
+  };
+  let res=await callBackend('addManualInventory',payload);
+  if(res.ok){
+    closeManualAdd();
+    ['ma-fname','ma-lname','ma-evdate','ma-sessstart','ma-sessend','ma-evtype',
+     'ma-linens','ma-upgrades','ma-pipedrape','ma-services','ma-vendors'].forEach(id=>{
+      let el=document.getElementById(id);if(el)el.value='';
+    });
+    loadAll();
+  }else{alert('Could not save: '+(res.error||'unknown error'));}
+}
+
+// ═══════════════════════════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════════════════════════
+async function exportPDF(){
+  let filtered=allOrders.filter(o=>inWindow(o,currentWindow));
+  if(currentVenue!=='all')filtered=filtered.filter(o=>(o.venue||'')===currentVenue);
+  filtered.sort((a,b)=>(parseDate(a.eventDate)||0)-(parseDate(b.eventDate)||0));
+  if(filtered.length===0){alert('No events in this window to export.');return;}
+  let agg=aggregateOrders(filtered);
+  let cats=[
+    {key:'linens',label:'Linens'},
+    {key:'upgrades',label:'Decor & Upgrades'},
+    {key:'services',label:'Services'},
+    {key:'vendors',label:'Vendors (Paid)'},
+    {key:'pipedrape',label:'Pipe & Drape'},
+  ];
+  let windowLabels={'week':'This Week','2weeks':'Next 2 Weeks','month':'Next Month','3months':'Next 3 Months'};
+  let venueLabel=currentVenue==='all'?'All Venues':currentVenue;
+  // Build a clean HTML document for the PDF
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px;}
+    h1{font-size:20px;margin-bottom:4px;}h2{font-size:15px;margin:18px 0 8px;border-bottom:2px solid #c8a84b;padding-bottom:4px;}
+    h3{font-size:13px;margin:10px 0 4px;color:#666;}
+    .event-block{border:1px solid #ddd;padding:10px 14px;margin-bottom:10px;border-radius:4px;}
+    .event-name{font-size:14px;font-weight:700;}.event-meta{font-size:11px;color:#666;margin-bottom:6px;}
+    .cat-title{font-size:10px;text-transform:uppercase;color:#c8a84b;font-weight:700;margin:8px 0 4px;}
+    .item{padding:2px 0;}.item::before{content:'• ';}
+    .totals-block{background:#f9f9f9;border:1px solid #ddd;padding:12px 16px;margin-bottom:16px;border-radius:4px;}
+    .need-line{font-style:italic;color:#888;font-size:11px;}
+    .page-break{page-break-before:always;}
+    .header-line{color:#888;font-size:11px;margin-bottom:16px;}
+  </style></head><body>
+  <h1>📦 IPS Inventory — ${windowLabels[currentWindow]}</h1>
+  <div class="header-line">${venueLabel} · ${filtered.length} event${filtered.length!==1?'s':''} · Generated ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
+  <h2>COMBINED INVENTORY TOTALS</h2>
+  <div class="totals-block">`;
+  cats.forEach(c=>{
+    let items=agg[c.key]||[];
+    if(items.length===0)return;
+    html+=`<div class="cat-title">${c.label}</div>`;
+    items.forEach(item=>{
+      let ik=item.name+(item.color?'|'+item.color:'')+(item.option?'|'+item.option:'');
+      let nk=noteKey(currentWindow,currentVenue,c.key,ik);
+      let saved=allNotes[nk]||{};
+      html+=`<div class="item">${fmtItem(item)}${saved.checked?' ✓':''}</div>`;
+      if(saved.need)html+=`<div class="need-line" style="padding-left:16px;">Need: ${saved.need}</div>`;
+    });
+  });
+  html+='</div><div class="page-break"></div><h2>INDIVIDUAL EVENTS</h2>';
+  filtered.forEach((o,i)=>{
+    let inv=parseLineItems(o);
+    let session=[o.sessStart,o.sessEnd].filter(Boolean).join('–');
+    html+=`<div class="event-block">
+      <div class="event-name">${o.firstName||''} ${o.lastName||''} — ${o.venue||''}</div>
+      <div class="event-meta">${fmtDate(o.eventDate)}${session?' · '+session:''} · ${o.evtype||''}</div>`;
+    cats.forEach(c=>{
+      let items=inv[c.key]||[];
+      if(items.length===0)return;
+      html+=`<div class="cat-title">${c.label}</div>`;
+      items.forEach(item=>html+=`<div class="item">${fmtItem(item)}</div>`);
+    });
+    html+='</div>';
+  });
+  html+='</body></html>';
+  let w=window.open('','_blank','width=800,height=900');
+  w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),600);
+}
+</script>
+</body></html>
