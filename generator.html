@@ -793,12 +793,12 @@ body{padding-top:42px;}
         <input type="checkbox" class="svc-cb" id="svc_bar1" onclick="event.stopPropagation();applyS(&#39;bar1&#39;)">
         <div class="svc-info"><div class="svc-name">Bartending Service – Tier 1</div><div class="svc-note">Beer, wine, champagne, seltzers · $50/hr · 5hr min (Azusa) = $250 · Add extra hours at $50/hr</div></div>
         <div class="svc-price">$250</div>
-      </div><div class="svc-sub" id="svc-sub-hrs-bar1" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $50/hr</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar1&#39;,-1)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_bar1_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar1&#39;,1)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_bar1_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div></div><div class="svc-card" id="svc-card-bar2">
+      </div><div class="svc-sub" id="svc-sub-hrs-bar1" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $50/hr (0.5hr increments)</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar1&#39;,-0.5)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_bar1_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar1&#39;,0.5)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_bar1_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div></div><div class="svc-card" id="svc-card-bar2">
       <div class="svc-top" onclick="toggleSvc(&#39;bar2&#39;)">
         <input type="checkbox" class="svc-cb" id="svc_bar2" onclick="event.stopPropagation();applyS(&#39;bar2&#39;)">
         <div class="svc-info"><div class="svc-name">Bartending Service – Tier 2</div><div class="svc-note">Hard Liquor: Shots or Mixed Cocktails · $90/hr · 5hr min = $450 · Add extra hours at $90/hr</div></div>
         <div class="svc-price">$450</div>
-      </div><div class="svc-sub" id="svc-sub-hrs-bar2" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $90/hr</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar2&#39;,-1)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_bar2_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar2&#39;,1)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_bar2_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div></div><div class="svc-card" id="svc-card-vip">
+      </div><div class="svc-sub" id="svc-sub-hrs-bar2" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $90/hr (0.5hr increments)</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar2&#39;,-0.5)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_bar2_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs(&#39;bar2&#39;,0.5)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_bar2_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div></div><div class="svc-card" id="svc-card-vip">
       <div class="svc-top" onclick="toggleSvc(&#39;vip&#39;)">
         <input type="checkbox" class="svc-cb" id="svc_vip" onclick="event.stopPropagation();applyS(&#39;vip&#39;)">
         <div class="svc-info"><div class="svc-name">VIP Room Add-On</div><div class="svc-note">Private VIP suite</div></div>
@@ -1570,7 +1570,7 @@ function renderSvcGrid(){
     if(s.type==='ice'){sub=`<div class="svc-sub" id="svc-sub-${s.id}"><select id="svc_${s.id}_sel" onclick="event.stopPropagation()" onchange="calc()">${ICE_OPTIONS.map((o,i)=>`<option value="${i}">${o.label}</option>`).join('')}</select></div>`;}
     else if(s.type==='pdsection'){sub=`<div class="svc-sub" id="svc-sub-${s.id}" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;"><input type="number" id="svc_${s.id}_qty" placeholder="# sections" min="1" onclick="event.stopPropagation()" onchange="calc()" style=""/><input type="text" id="svc_${s.id}_color" placeholder="Color" onclick="event.stopPropagation()" /><input type="text" id="svc_${s.id}_loc" placeholder="Location in venue" onclick="event.stopPropagation()" /></div>`;}
     else if(s.type==='custom'){sub=`<div class="svc-sub" id="svc-sub-${s.id}"><input type="number" id="svc_${s.id}_val" placeholder="${s.customLabel}" min="0" step="0.01" onclick="event.stopPropagation()" onchange="calc()"/></div>`;}
-    if(s.extraHrs){sub+=`<div class="svc-sub" id="svc-sub-hrs-${s.id}" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $${s.hrsRate}/hr</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs('${s.id}',-1)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_${s.id}_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs('${s.id}',1)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_${s.id}_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div>`;}
+    if(s.extraHrs){sub+=`<div class="svc-sub" id="svc-sub-hrs-${s.id}" style="display:none;"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;">Additional hours @ $${s.hrsRate}/hr (0.5hr increments)</div><div style="display:flex;gap:6px;align-items:center;"><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs('${s.id}',-0.5)" style="padding:3px 10px;font-size:16px;">−</button><span id="svc_${s.id}_extrahrs" style="min-width:28px;text-align:center;font-size:14px;font-weight:700;color:var(--gold);">0</span><button class="add-row-btn" onclick="event.stopPropagation();adjustExtraHrs('${s.id}',0.5)" style="padding:3px 10px;font-size:16px;">+</button><span id="svc_${s.id}_extraprice" style="font-size:11px;color:var(--text2);margin-left:6px;"></span></div></div>`;}
     let pl=s.price>0?'$'+s.price:(s.type==='ice'?'See options':'Custom');
     g.innerHTML+=`<div class="svc-card" id="svc-card-${s.id}">
       <div class="svc-top" onclick="toggleSvc('${s.id}')">
@@ -1584,13 +1584,21 @@ function toggleSvc(id){let cb=document.getElementById('svc_'+id);cb.checked=!cb.
 function adjustExtraHrs(svcId, delta){
   let el=document.getElementById('svc_'+svcId+'_extrahrs');
   if(!el)return;
-  let cur=parseInt(el.textContent)||0;
-  let next=Math.max(0,cur+delta);
+  let cur=parseFloat(el.textContent)||0;
+  let next=Math.max(0,Math.round((cur+delta)*2)/2); // snap to nearest 0.5
   el.textContent=next;
   let svc=SERVICES.find(s=>s.id===svcId);
   let rate=svc?svc.hrsRate:0;
   let priceEl=document.getElementById('svc_'+svcId+'_extraprice');
-  if(priceEl)priceEl.textContent=next>0?('+ $'+(next*rate)+' ('+next+' extra hr'+(next!==1?'s':'')+')'):'';
+  if(priceEl){
+    if(next>0){
+      let totalExtra=(next*rate).toFixed(2);
+      let hrsLabel=next===0.5?'30 min':next+'hr'+(next!==1?'s':'');
+      priceEl.textContent='+ $'+totalExtra+' ('+hrsLabel+' extra)';
+    }else{
+      priceEl.textContent='';
+    }
+  }
   calc();
 }
 function applyS(id){
@@ -1741,7 +1749,7 @@ function calc(){
   SERVICES.forEach(s=>{
     let cb=document.getElementById('svc_'+s.id);if(!cb||!cb.checked)return;
     if(s.type==='fixed'){
-      let xh=s.extraHrs?(parseInt((document.getElementById('svc_'+s.id+'_extrahrs')||{}).textContent)||0):0;
+      let xh=s.extraHrs?(parseFloat((document.getElementById('svc_'+s.id+'_extrahrs')||{}).textContent)||0):0;
       svcTotal+=s.price+(xh*(s.hrsRate||0));
     }
     else if(s.type==='ice'){let idx=parseInt(document.getElementById('svc_'+s.id+'_sel')?.value)||0;svcTotal+=ICE_OPTIONS[idx].price;}
@@ -1778,8 +1786,9 @@ function calc(){
   document.getElementById('t-svc').textContent='$'+(svcTotal+customSvc).toFixed(2);
   document.getElementById('t-charge').textContent='$'+scharge.toFixed(2);
   document.getElementById('t-total').textContent='$'+grand.toFixed(2);
-  document.getElementById('t-dep').textContent='$'+dep;
-  document.getElementById('t-bal').textContent='$'+(grand-dep).toFixed(2);
+  let dp0=getDepositDisplay(grand,dep);
+  document.getElementById('t-dep').textContent='$'+dp0.depositDue;
+  document.getElementById('t-bal').textContent='$'+dp0.balanceDue;
   document.getElementById('t-cc-total').textContent='$'+grandCC.toFixed(2);
   document.getElementById('live-total').textContent='$'+grand.toFixed(2);
   document.getElementById('live-total-cc').textContent='$'+grandCC.toFixed(2);
@@ -1875,8 +1884,12 @@ function buildLines(t){
     // Add extra hours to price
     if(s.extraHrs){
       let hrsEl=document.getElementById('svc_'+s.id+'_extrahrs');
-      let extraHrs=hrsEl?parseInt(hrsEl.textContent)||0:0;
-      if(extraHrs>0){price+=extraHrs*(s.hrsRate||0);label+=` + ${extraHrs}hr extra`;}
+      let extraHrs=hrsEl?parseFloat(hrsEl.textContent)||0:0;
+      if(extraHrs>0){
+        price+=extraHrs*(s.hrsRate||0);
+        let hrsLabel=extraHrs===0.5?'30 min extra':extraHrs+'hr extra'+(extraHrs!==1?'s':'');
+        label+=` + ${hrsLabel}`;
+      }
     }
     if(s.id==='bar1'||s.id==='bar2')label+=' – Customer-Provided Beverages';
     if(s.type==='ice'){let idx=parseInt(document.getElementById('svc_'+s.id+'_sel')?.value)||0;price=ICE_OPTIONS[idx].price;label=` (${ICE_OPTIONS[idx].lbs} lbs)`;}
@@ -1898,13 +1911,31 @@ function buildLines(t){
   return lines;
 }
 
+// ── Payment-aware deposit/balance calculation ─────────────────────────────
+// Returns {depositDue, balanceDue} reflecting any payment recorded:
+// - No payment → depositDue = full deposit, balanceDue = total - deposit
+// - Payment >= deposit → depositDue = $0, balanceDue = total - payment
+// - Payment < deposit (partial) → depositDue = deposit - payment (shortfall),
+//                                  balanceDue = total - payment
+function getDepositDisplay(finalTotal, dep){
+  let payAmt=parseFloat(document.getElementById('pay-amount')?.value)||0;
+  if(payAmt<=0){
+    return{depositDue:dep.toFixed(2),balanceDue:(finalTotal-dep).toFixed(2)};
+  }
+  let shortfall=dep-payAmt;
+  let depositDue=shortfall>0?shortfall.toFixed(2):'0.00';
+  let balanceDue=Math.max(0,finalTotal-payAmt).toFixed(2);
+  return{depositDue,balanceDue};
+}
+
 function buildTableHTML(lines,t){
   let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
   let tbl=`<table class="quote-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Extended Price</th></tr></thead><tbody>`;
   lines.forEach(l=>{tbl+=`<tr class="${l.cls}"><td>${l.item}</td><td>${l.qty}</td><td>${l.unit}</td><td>${l.ext}</td></tr>`;});
   tbl+=`<tr class="total-r"><td colspan="2"></td><td style="text-align:right;"><strong>Total Price ›</strong></td><td><strong>$${finalTotal.toFixed(2)}</strong></td></tr>`;
-  tbl+=`<tr class="dep-r"><td colspan="3" style="text-align:right;">Deposit Due ›</td><td>$${t.dep}</td></tr>`;
-  tbl+=`<tr class="dep-r"><td colspan="3" style="text-align:right;">Balance Due (1 week before event) ›</td><td>$${(finalTotal-t.dep).toFixed(2)}</td></tr>`;
+  let dp=getDepositDisplay(finalTotal,t.dep);
+  tbl+=`<tr class="dep-r"><td colspan="3" style="text-align:right;">Deposit Due ›</td><td>$${dp.depositDue}</td></tr>`;
+  tbl+=`<tr class="dep-r"><td colspan="3" style="text-align:right;">Balance Due (1 week before event) ›</td><td>$${dp.balanceDue}</td></tr>`;
   tbl+='</tbody></table>';
   return tbl;
 }
@@ -1933,8 +1964,9 @@ function buildEmailSafeTableHTML(lines,t){
   let totalStyle=cellBase+'background:#c8a84b;color:#fff;font-weight:700;font-size:14px;';
   let depStyle=cellBase+'background:#f7f7f7;color:#666;font-size:12px;';
   tbl+=`<tr><td colspan="2" style="${totalStyle}border:none;"></td><td style="${totalStyle}text-align:right;">Total Price ›</td><td style="${totalStyle}text-align:right;">$${finalTotal.toFixed(2)}</td></tr>`;
-  tbl+=`<tr><td colspan="3" style="${depStyle}text-align:right;">Deposit Due ›</td><td style="${depStyle}text-align:right;">$${t.dep}</td></tr>`;
-  tbl+=`<tr><td colspan="3" style="${depStyle}text-align:right;">Balance Due (1 week before event) ›</td><td style="${depStyle}text-align:right;">$${(finalTotal-t.dep).toFixed(2)}</td></tr>`;
+  let dp2=getDepositDisplay(finalTotal,t.dep);
+  tbl+=`<tr><td colspan="3" style="${depStyle}text-align:right;">Deposit Due ›</td><td style="${depStyle}text-align:right;">$${dp2.depositDue}</td></tr>`;
+  tbl+=`<tr><td colspan="3" style="${depStyle}text-align:right;">Balance Due (1 week before event) ›</td><td style="${depStyle}text-align:right;">$${dp2.balanceDue}</td></tr>`;
   tbl+='</tbody></table>';
   return tbl;
 }
@@ -2134,8 +2166,8 @@ function buildPdfHtml(){
   <table><thead><tr><th style='width:48%;text-align:left;'>Item</th><th style='width:8%;'>Qty</th><th style='width:16%;'>IPS Price</th><th style='width:28%;'>Extended Price</th></tr></thead>
   <tbody>${tableRows}
   <tr class="total-row"><td colspan="2"></td><td style="text-align:right;padding:6px 8px;">Total Price ›</td><td style="text-align:right;padding:6px 8px;">$${finalTotal.toFixed(2)}</td></tr>
-  <tr class="dep-row"><td colspan="3" style="text-align:right;padding:5px 8px;">Deposit Due ›</td><td style="text-align:right;padding:5px 8px;">$${t.dep}</td></tr>
-  <tr class="dep-row"><td colspan="3" style="text-align:right;padding:5px 8px;">Balance Due (1 week before event) ›</td><td style="text-align:right;padding:5px 8px;">$${(finalTotal-t.dep).toFixed(2)}</td></tr>
+  <tr class="dep-row"><td colspan="3" style="text-align:right;padding:5px 8px;">Deposit Due ›</td><td style="text-align:right;padding:5px 8px;">$${getDepositDisplay(finalTotal,t.dep).depositDue}</td></tr>
+  <tr class="dep-row"><td colspan="3" style="text-align:right;padding:5px 8px;">Balance Due (1 week before event) ›</td><td style="text-align:right;padding:5px 8px;">$${getDepositDisplay(finalTotal,t.dep).balanceDue}</td></tr>
   </tbody></table>
   <div class="gratuity-note">⭐ Host (Gratuity Not Included) — The service charge is NOT a tip. Please tip your host(s) at the end of your event — they appreciate it!</div>
   ${t.disc>0?'<div class="savings-banner"><span class="savings-text">✓ VMA Party Rentals 20% IPS Discount Applied</span><span class="savings-amount">You saved: $'+t.disc.toFixed(2)+'</span></div>':''}
@@ -2593,7 +2625,7 @@ function buildLineItemsJSON(t){
     let val=parseFloat(document.getElementById('svc_'+s.id+'_val')?.value)||0;
     let price=val||s.price||0;
     let extraHrsEl=document.getElementById('svc_'+s.id+'_extrahrs');
-    let extraHrs=extraHrsEl?parseInt(extraHrsEl.textContent)||0:0;
+    let extraHrs=extraHrsEl?parseFloat(extraHrsEl.textContent)||0:0;
     if(extraHrs>0)price+=extraHrs*(s.hrsRate||0);
     inv.services.push({name:s.name,price});
   });
@@ -2842,8 +2874,11 @@ function loadQuote(event){
               let svc=SERVICES.find(sv=>sv.id===sid);
               let rate=svc?svc.hrsRate:0;
               let priceEl=document.getElementById('svc_'+sid+'_extraprice');
-              let n=parseInt(d.extrahrs)||0;
-              if(priceEl)priceEl.textContent=n>0?('+ $'+(n*rate)+' ('+n+' extra hr'+(n!==1?'s':'')+')'):'';
+              let n=parseFloat(d.extrahrs)||0;
+              if(priceEl&&n>0){
+                let hrsLabel=n===0.5?'30 min':n+'hr'+(n!==1?'s':'');
+                priceEl.textContent='+ $'+(n*rate).toFixed(2)+' ('+hrsLabel+' extra)';
+              }
               let hrsSub=document.getElementById('svc-sub-hrs-'+sid);
               if(hrsSub)hrsSub.style.display='block';
             }
