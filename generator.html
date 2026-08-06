@@ -305,10 +305,6 @@ body{padding-top:42px;}
       <div class="live-label">Quote Total</div>
       <div class="live-val" id="live-total">$851.30</div>
     </div>
-    <div class="live-card" id="cc-live-card" style="display:none;border-color:var(--gold2);">
-      <div class="live-label">With CC Fee</div>
-      <div class="live-val" id="live-total-cc" style="color:var(--gold3);">$876.84</div>
-    </div>
   </div>
 </div>
 
@@ -872,16 +868,6 @@ body{padding-top:42px;}
   <button class="add-row-btn" onclick="addCustomRow()" style="width:100%;margin-top:4px;">+ Add Custom Line Item</button>
 </div>
 
-<!-- CC FEE -->
-<div class="section">
-  <div class="sec-header"><div class="sec-icon gold">💳</div><div class="sec-title">Payment Options</div></div>
-  <div class="cc-row" onclick="toggleCC()">
-    <input type="checkbox" class="cc-cb" id="cc-cb" onclick="event.stopPropagation();toggleCC()">
-    <span class="cc-label">Client paying by Credit Card (+3% fee)</span>
-    <span class="cc-note" id="cc-note">Check to add 3% CC surcharge</span>
-    <span class="cc-amt" id="cc-amt"></span>
-  </div>
-</div>
 
 <!-- SAVE / LOAD -->
 <div class="section" style="border-color:rgba(0,184,148,.3);">
@@ -934,7 +920,6 @@ body{padding-top:42px;}
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
     <div class="tot-card"><div class="tot-label">Deposit Due</div><div class="tot-val" id="t-dep">$200</div></div>
     <div class="tot-card"><div class="tot-label">Balance Due (1 wk before)</div><div class="tot-val" id="t-bal">$651.30</div></div>
-    <div class="tot-card" id="t-cc-card" style="display:none;border-color:var(--gold2);"><div class="tot-label">Total w/ CC Fee (3%)</div><div class="tot-val" id="t-cc-total" style="color:var(--gold3);">$876.84</div></div>
   </div>
 
   <!-- PAYMENT RECEIVED LOG -->
@@ -958,7 +943,6 @@ body{padding-top:42px;}
 <div class="btn-row">
   <button class="btn btn-gold" onclick="generate()">⚡ Generate Quote</button>
   <button class="btn btn-pdf" onclick="generatePDF()">📄 Export PDF</button>
-  <button class="btn btn-outline" onclick="calc()">↻ Recalculate</button>
   <button class="btn btn-outline" onclick="resetAll()">✕ Reset</button>
 </div>
 
@@ -1616,14 +1600,6 @@ function applyS(id){
   }
   calc();
 }
-function toggleCC(){
-  let cb=document.getElementById('cc-cb');
-  cb.checked=!cb.checked;
-  document.getElementById('t-cc-card').style.display=cb.checked?'block':'none';
-  document.getElementById('cc-live-card').style.display=cb.checked?'block':'none';
-  calc();
-}
-
 // ── LOCATION ──────────────────────────────────────────────────────────────────
 function syncGuestsToChairs(){
   let g=parseInt(document.getElementById('guests').value)||0;
@@ -1777,8 +1753,6 @@ function calc(){
   let grand=baseTotal+upgIPS+svcTotal+customIPS+customSvc+scharge;
   let disc=upgFull-upgIPS+(customFull-customIPS);
   let dep=parseInt(getDepositAmount())||r.dep;
-  let ccAmt=grand*0.03;
-  let grandCC=grand+ccAmt;
 
   document.getElementById('t-base').textContent='$'+baseTotal.toFixed(2);
   document.getElementById('t-upg-pre').textContent='$'+(upgFull+customFull).toFixed(2);
@@ -1789,12 +1763,8 @@ function calc(){
   let dp0=getDepositDisplay(grand,dep);
   document.getElementById('t-dep').textContent='$'+dp0.depositDue;
   document.getElementById('t-bal').textContent='$'+dp0.balanceDue;
-  document.getElementById('t-cc-total').textContent='$'+grandCC.toFixed(2);
   document.getElementById('live-total').textContent='$'+grand.toFixed(2);
-  document.getElementById('live-total-cc').textContent='$'+grandCC.toFixed(2);
-  let ccCb=document.getElementById('cc-cb');
-  document.getElementById('cc-amt').textContent=ccCb.checked?'+$'+ccAmt.toFixed(2)+' CC fee':'';
-  return {r,base,addH,addAmt,baseTotal,upgFull,upgIPS,customFull,customIPS,svcTotal,customSvc,disc,schargeBase,scharge,grand,dep,bal:grand-dep,ccAmt,grandCC,day};
+  return {r,base,addH,addAmt,baseTotal,upgFull,upgIPS,customFull,customIPS,svcTotal,customSvc,disc,schargeBase,scharge,grand,dep,bal:grand-dep,day};
 }
 
 // ── GENERATE LINES (shared between quote + order) ─────────────────────────────
@@ -1906,8 +1876,6 @@ function buildLines(t){
   // Vendor referral lines
   calcVendors().lines.forEach(l=>lines.push(l));
   lines.push({item:'Standard Service Charge – 10%',qty:1,unit:'$'+t.scharge.toFixed(2),ext:'$'+t.scharge.toFixed(2),cls:'scharge-r'});
-  let ccCb=document.getElementById('cc-cb');
-  // CC fee is shown in the live total display but NOT added to the quote table/PDF
   return lines;
 }
 
@@ -1929,7 +1897,7 @@ function getDepositDisplay(finalTotal, dep){
 }
 
 function buildTableHTML(lines,t){
-  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let finalTotal=t.grand;
   let tbl=`<table class="quote-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Extended Price</th></tr></thead><tbody>`;
   lines.forEach(l=>{tbl+=`<tr class="${l.cls}"><td>${l.item}</td><td>${l.qty}</td><td>${l.unit}</td><td>${l.ext}</td></tr>`;});
   tbl+=`<tr class="total-r"><td colspan="2"></td><td style="text-align:right;"><strong>Total Price ›</strong></td><td><strong>$${finalTotal.toFixed(2)}</strong></td></tr>`;
@@ -1943,7 +1911,7 @@ function buildTableHTML(lines,t){
 // Email-safe version of the quote table — all styling inlined per-tag, since
 // Gmail and most email clients strip <style> classes from pasted/injected HTML.
 function buildEmailSafeTableHTML(lines,t){
-  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let finalTotal=t.grand;
   let cellBase='padding:8px 10px;border:1px solid #e0e0e0;font-size:13px;font-family:Arial,Helvetica,sans-serif;';
   let thStyle=cellBase+'background:#1a1a2e;color:#c8a84b;text-transform:uppercase;font-size:11px;letter-spacing:.05em;text-align:left;';
   let rowStyleFor=cls=>{
@@ -1994,7 +1962,7 @@ function generate(){
   let locName=currentLoc==='sd'?'San Dimas':'Azusa';
   let locAddr=currentLoc==='sd'?'402 W. Arrow Hwy #5, San Dimas, CA 91773':'680 E. Alosta Ave #102, Azusa, CA 91702';
   let fd=fmtDate(evdate);
-  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let finalTotal=t.grand;
   let evdateFmt1=evdate?evdate.split('-').slice(1).concat(evdate.split('-')[0]).join('-'):'TBD';
   subject=`Price Quote – Insta Party Spot ${locName} – ${fname} ${lname} – Event Date: ${evdateFmt1} – ${start}–${end}`;
   document.getElementById('out-subject').textContent=subject;
@@ -2046,7 +2014,7 @@ function generateOrderEmail(){
   subject=`Insta Party Spot ${locName} – ${fname.toUpperCase()} ${lname.toUpperCase()} – Event Date: ${evdateFmt2} – ${start} – ${end}`;
   document.getElementById('out-order-subject').textContent=subject;
   let lines=buildLines(t);
-  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let finalTotal=t.grand;
   let emailBody='';
   if(currentLoc==='az'){
     emailBody=`Hi ${fname},\n\nIt was nice talking with you! Per our conversation, please see attached event venue reservation details.\n\nYour reservation is now loaded into our reservation scheduling system and you are good to go! Please review and let us know if you have any questions.\n\nInsta Party Spot charges a standard 10% service charge to help subsidize some of the additional expenses of providing a safe, clean event space for Customers. The service charge is NOT a "tip" or gratuity for the staff. Please do tip your host(s) at the end of your event though. Thank you and we appreciate your business.\n\n*We often times get asked how much a customer should "tip" their host(s). While we prefer not to say, we are happy to offer some guidance. It's often typical that our customers choose a percentage-based tip (similar to how you would pay at a restaurant), however, it's completely up to the customer, of course. However, please do keep in mind that they also do setup and teardown, and manage multiple tables for a multi-hour event.*\n\n**Parking Lot Information - Important!**\n\nPlease direct your guests to park in the VIP Underground Parking Lot. Here is the gate access code: #6423\n\nThe best way to do this is to also include this information and access code in your invitation when you send it out, as well as in a reminder email/text before the actual event!\n\n[ATTACH SALES ORDER PDF]`+IPS_EMAIL_SIGNATURE;
@@ -2061,6 +2029,8 @@ function buildPdfHtml(){
   let t=calc();
   let fname=document.getElementById('fname').value||'Client';
   let lname=document.getElementById('lname').value||'';
+  let email=document.getElementById('email').value||'';
+  let phone=document.getElementById('phone').value||'';
   let evdate=document.getElementById('evdate').value;
   let evtype=getEvtype();
   let guests=document.getElementById('guests').value||'—';
@@ -2073,7 +2043,7 @@ function buildPdfHtml(){
   let fd=fmtDate(evdate);
   let lines=buildLines(t);
   let isOrder=currentPhase==='order';
-  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let finalTotal=t.grand;
   let payMethod=document.getElementById('pay-method').value;
   let payAmt=document.getElementById('pay-amount').value;
 
@@ -2156,12 +2126,16 @@ function buildPdfHtml(){
     <div><div class="info-label">Event Address & Type</div><div class="info-val">${locAddr} · ${evtype}</div></div>
     <div><div class="info-label">Event Date & Type</div><div class="info-val">${fd} · ${evtype} — Approx ${guests} guests</div></div>
     <div><div class="info-label">Arrival / Departure Time</div><div class="info-val">${start} – ${end}</div></div>
+    ${phone?`<div><div class="info-label">Phone</div><div class="info-val">${phone}</div></div>`:''}
+    ${email?`<div><div class="info-label">Email</div><div class="info-val">${email}</div></div>`:''}
     ${timeline?`<div style="grid-column:span 2;"><div class="info-label">Timeline</div><div class="info-val">${timeline}</div></div>`:''}
   </div>`:`<div class="info-grid">
     <div><div class="info-label">Client</div><div class="info-val">${fname} ${lname}</div></div>
     <div><div class="info-label">Venue</div><div class="info-val">IPS ${locName} — ${locAddr}</div></div>
     <div><div class="info-label">Event Date</div><div class="info-val">${fd}</div></div>
     <div><div class="info-label">Session</div><div class="info-val">${start} – ${end} · ${guests} guests · ${evtype}</div></div>
+    ${phone?`<div><div class="info-label">Phone</div><div class="info-val">${phone}</div></div>`:''}
+    ${email?`<div><div class="info-label">Email</div><div class="info-val">${email}</div></div>`:''}
   </div>`}
   <table><thead><tr><th style='width:48%;text-align:left;'>Item</th><th style='width:8%;'>Qty</th><th style='width:16%;'>IPS Price</th><th style='width:28%;'>Extended Price</th></tr></thead>
   <tbody>${tableRows}
@@ -2328,7 +2302,6 @@ async function saveQuote(returnState){
     notes:document.getElementById('notes')?.value||'',
     isDouble:document.getElementById('double-cb')?.checked||false,
     doubleStart:doubleStartTime,
-    ccChecked:document.getElementById('cc-cb')?.checked||false,
     payMethod:document.getElementById('pay-method')?.value||'',
     payAmount:document.getElementById('pay-amount')?.value||'',
     payDate:document.getElementById('pay-date')?.value||'',
@@ -2574,7 +2547,7 @@ async function syncQuoteToTracker(state, mode, byName){
     return {ok:false,error:'not_signed_in'};
   }
   let t=calc();
-  let finalTotal=document.getElementById('cc-cb')?.checked?t.grandCC:t.grand;
+  let finalTotal=t.grand;
   let locName=currentLoc==='sd'?'San Dimas':'Azusa';
   // Only capture inventory for Sales Orders — quotes don't have confirmed inventory needs yet
   let lineItems=mode==='SALES-ORDER'?buildLineItemsJSON(t):null;
@@ -2797,8 +2770,6 @@ function loadQuote(event){
       // Sarah
       // sarah-cb restore removed — now in vendors section
       // CC
-      let ccCb=document.getElementById('cc-cb');
-      if(ccCb){ccCb.checked=s.ccChecked||false;document.getElementById('t-cc-card').style.display=ccCb.checked?'block':'none';document.getElementById('cc-live-card').style.display=ccCb.checked?'block':'none';}
       // Double session
       let dCb=document.getElementById('double-cb');
       if(dCb){
