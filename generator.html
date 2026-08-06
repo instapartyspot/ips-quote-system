@@ -335,7 +335,7 @@ body{padding-top:42px;}
   </div>
   <div class="grid3 mb">
     <div class="field"><label>Email</label><input type="email" id="email" placeholder="client@email.com"></div>
-    <div class="field"><label>Phone</label><input type="tel" id="phone" placeholder="(626) 555-0100"></div>
+    <div class="field"><label>Phone</label><input type="tel" id="phone" placeholder="(626) 555-0100" oninput="formatPhoneInput(this)" maxlength="14"></div>
     <div class="field"><label>Approx Guests</label><input type="number" id="guests" placeholder="50" min="1" onchange="syncGuestsToChairs();calc()"></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(200,168,75,0.08);border:1px solid rgba(200,168,75,0.3);border-radius:8px;margin-bottom:14px;">
@@ -1941,6 +1941,24 @@ function buildEmailSafeTableHTML(lines,t){
 
 function fmtDate(d){if(!d)return'—';let p=d.split('-');let dt=new Date(+p[0],+p[1]-1,+p[2]);return dt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}
 
+// ── Phone formatting helpers ───────────────────────────────────────────────
+// Live input masking: auto-formats as the host types → (626) 457-1234
+function formatPhoneInput(input){
+  let digits=input.value.replace(/\D/g,'').substring(0,10);
+  let fmt='';
+  if(digits.length>0)fmt='('+digits.substring(0,3);
+  if(digits.length>=4)fmt+=') '+digits.substring(3,6);
+  if(digits.length>=7)fmt+='-'+digits.substring(6,10);
+  input.value=fmt;
+}
+// Formats any stored phone value (raw digits or already formatted) to (626) 457-1234
+function fmtPhone(val){
+  if(!val)return'';
+  let digits=val.replace(/\D/g,'');
+  if(digits.length!==10)return val; // return as-is if not a standard 10-digit number
+  return'('+digits.substring(0,3)+') '+digits.substring(3,6)+'-'+digits.substring(6);
+}
+
 // ── GENERATE QUOTE ─────────────────────────────────────────────────────────────
 function generate(){
   let t=calc();
@@ -2126,7 +2144,7 @@ function buildPdfHtml(){
     <div><div class="info-label">Event Address & Type</div><div class="info-val">${locAddr} · ${evtype}</div></div>
     <div><div class="info-label">Event Date & Type</div><div class="info-val">${fd} · ${evtype} — Approx ${guests} guests</div></div>
     <div><div class="info-label">Arrival / Departure Time</div><div class="info-val">${start} – ${end}</div></div>
-    ${phone?`<div><div class="info-label">Phone</div><div class="info-val">${phone}</div></div>`:''}
+    ${phone?`<div><div class="info-label">Phone</div><div class="info-val">${fmtPhone(phone)}</div></div>`:''}
     ${email?`<div><div class="info-label">Email</div><div class="info-val">${email}</div></div>`:''}
     ${timeline?`<div style="grid-column:span 2;"><div class="info-label">Timeline</div><div class="info-val">${timeline}</div></div>`:''}
   </div>`:`<div class="info-grid">
@@ -2134,7 +2152,7 @@ function buildPdfHtml(){
     <div><div class="info-label">Venue</div><div class="info-val">IPS ${locName} — ${locAddr}</div></div>
     <div><div class="info-label">Event Date</div><div class="info-val">${fd}</div></div>
     <div><div class="info-label">Session</div><div class="info-val">${start} – ${end} · ${guests} guests · ${evtype}</div></div>
-    ${phone?`<div><div class="info-label">Phone</div><div class="info-val">${phone}</div></div>`:''}
+    ${phone?`<div><div class="info-label">Phone</div><div class="info-val">${fmtPhone(phone)}</div></div>`:''}
     ${email?`<div><div class="info-label">Email</div><div class="info-val">${email}</div></div>`:''}
   </div>`}
   <table><thead><tr><th style='width:48%;text-align:left;'>Item</th><th style='width:8%;'>Qty</th><th style='width:16%;'>IPS Price</th><th style='width:28%;'>Extended Price</th></tr></thead>
