@@ -2704,13 +2704,22 @@ async function sendQuoteEmail(){
     let subjectEl=document.getElementById('out-order-subject')||document.getElementById('out-subject');
     let bodyEl=document.getElementById('out-order-email')||document.getElementById('out-email');
     if(!subjectEl||!bodyEl||!bodyEl.textContent){alert('Click "Generate Order Email" first so the email is ready to send.');return;}
+    // Always regenerate the subject fresh at send time so it uses the current
+    // name fields — avoids the [CLIENT] bug where generateOrderEmail() ran
+    // before the loaded .ipsquote had restored the name fields.
+    let locName=currentLoc==='sd'?'San Dimas':'Azusa';
+    let evdate=document.getElementById('evdate').value||'';
+    let evdateFmt=evdate?evdate.split('-').slice(1).concat(evdate.split('-')[0]).join('-'):'TBD';
+    let start=document.getElementById('sess-start').value||'';
+    let end=document.getElementById('sess-end').value||'';
+    let freshSubject=`Insta Party Spot ${locName} – ${(fname||'CLIENT').toUpperCase()} ${(lname||'').toUpperCase()} – Event Date: ${evdateFmt} – ${start} – ${end}`;
     let btn=document.querySelector('button[onclick="sendQuoteEmail()"]');
     if(btn){btn.disabled=true;btn.textContent='⏳ Building PDF...';}
     try{
       let {base64,filename}=await buildPdfBase64();
       openSendModal({
         to:email,
-        subject:subjectEl.textContent,
+        subject:freshSubject,
         bodyText:bodyEl.textContent,
         attachmentBase64:base64,
         attachmentName:filename,
